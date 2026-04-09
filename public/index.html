@@ -1,0 +1,808 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ExpertIA — Rapport d'Expertise Immobilière</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<!-- ── NAVBAR ── -->
+<nav class="navbar">
+  <div class="nav-logo">
+    <div class="nav-logo-mark">🏛</div>
+    <div>
+      <div class="nav-logo-name">ExpertIA</div>
+      <div class="nav-logo-sub">Expertise automatisée</div>
+    </div>
+  </div>
+  <div class="nav-tabs">
+    <button class="nav-tab active" id="tab-form" onclick="showPage('form')">
+      <span class="tab-n">1</span> Nouveau dossier
+    </button>
+    <button class="nav-tab" id="tab-gen" onclick="showPage('gen')">
+      <span class="tab-n">2</span> Génération
+    </button>
+    <button class="nav-tab" id="tab-report" onclick="showPage('report')">
+      <span class="tab-n">3</span> Pré-rapport
+    </button>
+  </div>
+  <div class="nav-right">
+    <span class="nav-badge">Claude claude-sonnet-4-6</span>
+  </div>
+</nav>
+
+<!-- ════════════════════ PAGE 1 — FORMULAIRE ════════════════════ -->
+<main class="main">
+<div class="page active" id="page-form">
+
+  <!-- Upload base de connaissance -->
+  <div class="doc-upload-bar" id="doc-upload-bar">
+    <div class="du-icon">📚</div>
+    <div style="flex:1">
+      <div class="du-label">
+        Base de connaissance — Rapport de référence
+        <button class="tip-btn" data-tip="Uploadez un rapport d'expertise rédigé par l'expert (format .docx ou .pdf). L'IA analysera son style, son vocabulaire et ses formulations pour reproduire EXACTEMENT son ton dans le nouveau rapport.">?</button>
+      </div>
+      <div class="du-hint">Déposez un rapport .docx ou .pdf — l'IA reproduira le style de l'expert</div>
+    </div>
+    <div id="doc-status" class="du-status" style="display:none">✓ Document chargé</div>
+    <label class="btn btn-glass btn-sm" style="cursor:pointer">
+      Choisir un fichier
+      <input type="file" id="ref-doc-input" accept=".docx,.pdf" style="display:none" onchange="handleRefDoc(this)">
+    </label>
+  </div>
+
+  <!-- Stepper -->
+  <div class="stepper">
+    <div class="step active" id="s0" onclick="canGoStep(0)">
+      <div class="step-circle" id="sc0">A</div><div class="step-label">Mission</div>
+    </div>
+    <div class="step-line"></div>
+    <div class="step" id="s1" onclick="canGoStep(1)">
+      <div class="step-circle" id="sc1">B</div><div class="step-label">Bien</div>
+    </div>
+    <div class="step-line"></div>
+    <div class="step" id="s2" onclick="canGoStep(2)">
+      <div class="step-circle" id="sc2">C</div><div class="step-label">Terrain</div>
+    </div>
+    <div class="step-line"></div>
+    <div class="step" id="s3" onclick="canGoStep(3)">
+      <div class="step-circle" id="sc3">D</div><div class="step-label">Bâti</div>
+    </div>
+    <div class="step-line"></div>
+    <div class="step" id="s4" onclick="canGoStep(4)">
+      <div class="step-circle" id="sc4">E</div><div class="step-label">Désordres</div>
+    </div>
+    <div class="step-line"></div>
+    <div class="step" id="s5" onclick="canGoStep(5)">
+      <div class="step-circle" id="sc5">F</div><div class="step-label">Surfaces</div>
+    </div>
+  </div>
+
+  <!-- ──────────── SECTION A ──────────── -->
+  <div id="sec-0">
+    <div class="sec-head">
+      <div class="sec-title"><span class="sec-badge">A</span> Identification de la mission</div>
+      <div class="sec-desc">Informations générales sur la mission — à remplir avant la visite si possible.</div>
+    </div>
+    <div class="card">
+      <div class="grid2">
+        <div class="field">
+          <div class="field-top">
+            <label>Référence dossier <span class="req">*</span></label>
+            <button class="tip-btn" data-tip="Créez une référence unique pour ce dossier. Format recommandé : EXP-2025-0001. Cette référence apparaîtra sur tous les documents du dossier.">?</button>
+          </div>
+          <input type="text" id="ref_dossier" placeholder="EXP-2025-0001">
+        </div>
+        <div class="field">
+          <div class="field-top">
+            <label>Date de visite <span class="req">*</span></label>
+            <button class="tip-btn" data-tip="Date à laquelle l'expert a visité le bien. Cette date sera mentionnée dans l'en-tête officiel du rapport.">?</button>
+          </div>
+          <input type="date" id="date_visite">
+        </div>
+        <div class="field">
+          <div class="field-top">
+            <label>Type de mission <span class="req">*</span></label>
+            <button class="tip-btn" data-tip="Précise l'objectif de l'expertise. Une mission Succession a des exigences différentes d'une mission Vente — cela influe sur le ton et les conclusions du rapport.">?</button>
+          </div>
+          <select id="type_mission">
+            <option value="">— Sélectionner —</option>
+            <option>Vente / Estimation</option>
+            <option>Achat (conseil acquéreur)</option>
+            <option>Succession / Donation</option>
+            <option>Investissement locatif</option>
+            <option>Expertise judiciaire</option>
+            <option>Garantie locative</option>
+            <option>Autre</option>
+          </select>
+        </div>
+        <div class="field">
+          <div class="field-top">
+            <label>Donneur d'ordre</label>
+            <button class="tip-btn" data-tip="Qui a commandé l'expertise ? Cette information est obligatoire dans le rapport officiel pour établir la relation contractuelle.">?</button>
+          </div>
+          <select id="donneur_ordre">
+            <option value="">— Sélectionner —</option>
+            <option>Particulier</option>
+            <option>Notaire</option>
+            <option>Avocat</option>
+            <option>Établissement bancaire</option>
+            <option>Entreprise / Société</option>
+            <option>Tribunal</option>
+          </select>
+        </div>
+        <div class="field">
+          <div class="field-top">
+            <label>Nom du donneur d'ordre</label>
+            <button class="tip-btn" data-tip="Nom complet de la personne ou de l'entité qui commande le rapport (ex : Me Dupont, Crédit Agricole, SCI Les Pins…).">?</button>
+          </div>
+          <input type="text" id="nom_donneur_ordre" placeholder="M. Dupont / Étude Maître Martin">
+        </div>
+        <div class="field">
+          <div class="field-top">
+            <label>Régime juridique</label>
+            <button class="tip-btn" data-tip="Statut légal du bien. Exemple : en copropriété, un lot inclut des parties privatives ET des tantièmes de parties communes — cela impacte la description du rapport.">?</button>
+          </div>
+          <select id="regime_juridique">
+            <option value="">— Sélectionner —</option>
+            <option>Pleine propriété</option>
+            <option>Usufruit / Nue-propriété</option>
+            <option>Indivision</option>
+            <option>Copropriété</option>
+            <option>SCI</option>
+            <option>Autre</option>
+          </select>
+        </div>
+      </div>
+      <div class="field">
+        <div class="field-top">
+          <label>Adresse complète du bien <span class="req">*</span></label>
+          <button class="tip-btn" data-tip="Adresse complète avec numéro, rue, code postal et commune. Cette adresse est utilisée pour la recherche géographique automatique du Chapitre 1 (marché immobilier, transports, données INSEE).">?</button>
+        </div>
+        <input type="text" id="adresse_bien" placeholder="12 rue des Acacias, 33400 Talence">
+      </div>
+      <div class="grid2">
+        <div class="field">
+          <div class="field-top">
+            <label>Références cadastrales</label>
+            <button class="tip-btn" data-tip="Trouvez ces informations sur le titre de propriété ou sur cadastre.gouv.fr. Format : Section + numéro de parcelle (ex : AB 0042). Indispensable pour l'identification légale du bien.">?</button>
+          </div>
+          <input type="text" id="refs_cadastrales" placeholder="Section AB n° 0042">
+        </div>
+        <div class="grid2" style="grid-column:span 1">
+          <div class="field">
+            <div class="field-top">
+              <label>Classe DPE</label>
+              <button class="tip-btn" data-tip="Diagnostic de Performance Énergétique. Valeur de A (très performant) à G (passoire thermique). Visible sur le DPE fourni par le vendeur. La mention DPE est obligatoire dans tout rapport d'expertise.">?</button>
+            </div>
+            <select id="dpe_classe">
+              <option value="">NC</option>
+              <option>A</option><option>B</option><option>C</option><option>D</option>
+              <option>E</option><option>F</option><option>G</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>Classe GES</label>
+            <select id="ges_classe">
+              <option value="">NC</option>
+              <option>A</option><option>B</option><option>C</option><option>D</option>
+              <option>E</option><option>F</option><option>G</option>
+            </select>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="form-nav">
+      <div></div>
+      <button class="btn btn-navy" onclick="nextStep()">Suivant →</button>
+    </div>
+  </div>
+
+  <!-- ──────────── SECTION B ──────────── -->
+  <div id="sec-1" style="display:none">
+    <div class="sec-head">
+      <div class="sec-title"><span class="sec-badge">B</span> Identification du bien</div>
+      <div class="sec-desc">Nature et caractéristiques générales du bien expertisé.</div>
+    </div>
+    <div class="card">
+      <div class="grid2">
+        <div class="field">
+          <div class="field-top">
+            <label>Type de bien <span class="req">*</span></label>
+            <button class="tip-btn" data-tip="Le type de bien détermine la structure du rapport. Une maison individuelle aura un chapitre terrain détaillé, un appartement aura un chapitre copropriété, un terrain nu aura uniquement les chapitres 1 et 2.">?</button>
+          </div>
+          <select id="type_bien">
+            <option value="">— Sélectionner —</option>
+            <option>Maison individuelle</option>
+            <option>Appartement</option>
+            <option>Terrain à bâtir</option>
+            <option>Terrain agricole / naturel</option>
+            <option>Bureau / Local professionnel</option>
+            <option>Local commercial</option>
+          </select>
+        </div>
+        <div class="field">
+          <div class="field-top">
+            <label>Année de construction estimée</label>
+            <button class="tip-btn" data-tip="Si l'année exacte est inconnue, indiquez une période (ex : 'Années 70', 'Avant 1948'). Cette information détermine les obligations réglementaires (amiante, plomb, termites) et l'état d'usure normal attendu.">?</button>
+          </div>
+          <input type="text" id="annee_construction" placeholder="1978 — ou 'Années 70'">
+        </div>
+        <div class="field">
+          <div class="field-top">
+            <label>Nombre de niveaux</label>
+            <button class="tip-btn" data-tip="Comptez tous les niveaux habitables : sous-sol, rez-de-chaussée, étages, combles aménagés. R+1 signifie rez-de-chaussée + 1 étage.">?</button>
+          </div>
+          <select id="nb_niveaux">
+            <option value="">— Sélectionner —</option>
+            <option>Plain-pied (RDC seul)</option>
+            <option>R+1 (RDC + 1 étage)</option>
+            <option>R+2</option>
+            <option>R+3 et plus</option>
+            <option>Sous-sol + RDC</option>
+            <option>Sous-sol + RDC + étage(s)</option>
+          </select>
+        </div>
+        <div class="field">
+          <div class="field-top">
+            <label>Présence d'un sous-sol</label>
+            <button class="tip-btn" data-tip="Cave, garage en sous-sol, vide sanitaire… Le sous-sol influe sur les risques d'humidité et les surfaces annexes du rapport.">?</button>
+          </div>
+          <select id="sous_sol">
+            <option value="">— Sélectionner —</option>
+            <option>Non</option>
+            <option>Oui — cave</option>
+            <option>Oui — garage en sous-sol</option>
+            <option>Oui — cave + garage</option>
+            <option>Vide sanitaire</option>
+          </select>
+        </div>
+      </div>
+      <div class="field">
+        <div class="field-top">
+          <label>Présence d'annexes</label>
+          <button class="tip-btn" data-tip="Les annexes sont listées séparément dans le tableau des surfaces (Section F). Cochez tout ce qui est présent même si détaché du bâtiment principal.">?</button>
+        </div>
+        <div class="checkbox-group">
+          <label class="checkbox-item"><input type="checkbox" name="annexes" value="Garage attenant"> Garage attenant</label>
+          <label class="checkbox-item"><input type="checkbox" name="annexes" value="Garage indépendant"> Garage indépendant</label>
+          <label class="checkbox-item"><input type="checkbox" name="annexes" value="Carport"> Carport</label>
+          <label class="checkbox-item"><input type="checkbox" name="annexes" value="Piscine"> Piscine</label>
+          <label class="checkbox-item"><input type="checkbox" name="annexes" value="Véranda"> Véranda</label>
+          <label class="checkbox-item"><input type="checkbox" name="annexes" value="Abri de jardin"> Abri de jardin</label>
+          <label class="checkbox-item"><input type="checkbox" name="annexes" value="Terrasse couverte"> Terrasse couverte</label>
+        </div>
+      </div>
+      <div class="field">
+        <div class="field-top">
+          <label>Notes libres sur le bien</label>
+          <button class="tip-btn" data-tip="Tout ce qui ne rentre pas dans les cases : particularités architecturales, travaux en cours, informations données par le propriétaire, points à vérifier. L'IA intègre ces notes dans le rapport.">?</button>
+        </div>
+        <textarea id="notes_bien" placeholder="Observations générales lors de la visite, particularités, points à noter…"></textarea>
+      </div>
+    </div>
+    <div class="form-nav">
+      <button class="btn btn-glass" onclick="prevStep()">← Retour</button>
+      <button class="btn btn-navy" onclick="nextStep()">Suivant →</button>
+    </div>
+  </div>
+
+  <!-- ──────────── SECTION C ──────────── -->
+  <div id="sec-2" style="display:none">
+    <div class="sec-head">
+      <div class="sec-title"><span class="sec-badge">C</span> Description du terrain</div>
+      <div class="sec-desc">Caractéristiques physiques et réglementaires — Chapitre 2 du rapport.</div>
+    </div>
+    <div class="card">
+      <div class="grid3">
+        <div class="field">
+          <div class="field-top">
+            <label>Superficie (m²) <span class="req">*</span></label>
+            <button class="tip-btn" data-tip="Surface totale de la parcelle (pas du bâtiment). Trouvez cette information sur le titre de propriété, la taxe foncière, ou sur cadastre.gouv.fr. Indiquez le chiffre exact si possible.">?</button>
+          </div>
+          <input type="number" id="superficie_terrain" placeholder="650">
+        </div>
+        <div class="field">
+          <div class="field-top">
+            <label>Forme du terrain</label>
+            <button class="tip-btn" data-tip="La forme du terrain influe sur la constructibilité et l'aménagement. Un terrain en L ou irrégulier peut avoir des zones inconstructibles ou des contraintes de prospect.">?</button>
+          </div>
+          <select id="forme_terrain">
+            <option value="">— Sélectionner —</option>
+            <option>Rectangulaire régulier</option>
+            <option>Irrégulier</option>
+            <option>En L</option>
+            <option>En triangle</option>
+            <option>Autre</option>
+          </select>
+        </div>
+        <div class="field">
+          <div class="field-top">
+            <label>Topographie</label>
+            <button class="tip-btn" data-tip="Relief du terrain. Une pente importante peut générer des coûts de travaux supplémentaires (terrassement, soutènement) et doit être mentionnée dans le rapport.">?</button>
+          </div>
+          <select id="topographie">
+            <option value="">— Sélectionner —</option>
+            <option>Plat</option>
+            <option>Légèrement en pente</option>
+            <option>En pente marquée</option>
+            <option>En dévers</option>
+            <option>Avec dénivelé important</option>
+          </select>
+        </div>
+        <div class="field">
+          <div class="field-top">
+            <label>Orientation principale</label>
+            <button class="tip-btn" data-tip="Direction vers laquelle le terrain et le jardin sont exposés. Un jardin plein sud est un atout valorisant. Cette information est vérifiable avec une boussole ou via Google Maps.">?</button>
+          </div>
+          <select id="orientation">
+            <option value="">— Sélectionner —</option>
+            <option>Nord</option><option>Nord-Est</option><option>Est</option>
+            <option>Sud-Est</option><option>Sud</option><option>Sud-Ouest</option>
+            <option>Ouest</option><option>Nord-Ouest</option>
+          </select>
+        </div>
+        <div class="field">
+          <div class="field-top">
+            <label>Accès au terrain</label>
+            <button class="tip-btn" data-tip="Mode d'accès depuis la voie publique. En cas de servitude de passage, celle-ci doit être documentée (acte notarié) car elle impacte la valeur du bien.">?</button>
+          </div>
+          <select id="acces_terrain">
+            <option value="">— Sélectionner —</option>
+            <option>Direct sur voie publique</option>
+            <option>Accès par servitude de passage</option>
+            <option>Chemin privé commun</option>
+            <option>Autre</option>
+          </select>
+        </div>
+        <div class="field">
+          <div class="field-top">
+            <label>Clôtures</label>
+            <button class="tip-btn" data-tip="Présence et état des clôtures périmétriques. Une clôture complète est un élément de sécurisation du bien, valorisant pour une maison familiale.">?</button>
+          </div>
+          <select id="clotures">
+            <option value="">— Sélectionner —</option>
+            <option>Oui — clôture complète</option>
+            <option>Oui — clôture partielle</option>
+            <option>Non</option>
+          </select>
+        </div>
+      </div>
+      <div class="field">
+        <div class="field-top">
+          <label>Réseaux disponibles</label>
+          <button class="tip-btn" data-tip="Cochez tous les réseaux présents et raccordés. Un terrain non viabilisé (sans eau, électricité, assainissement) a une valeur inférieure et des coûts de travaux supplémentaires à prévoir.">?</button>
+        </div>
+        <div class="checkbox-group">
+          <label class="checkbox-item"><input type="checkbox" name="reseaux" value="Eau potable (réseau public)"> Eau potable</label>
+          <label class="checkbox-item"><input type="checkbox" name="reseaux" value="Électricité"> Électricité</label>
+          <label class="checkbox-item"><input type="checkbox" name="reseaux" value="Gaz de ville"> Gaz de ville</label>
+          <label class="checkbox-item"><input type="checkbox" name="reseaux" value="Assainissement collectif"> Assainissement collectif</label>
+          <label class="checkbox-item"><input type="checkbox" name="reseaux" value="Assainissement autonome (fosse)"> Fosse septique</label>
+          <label class="checkbox-item"><input type="checkbox" name="reseaux" value="Fibre optique"> Fibre optique</label>
+        </div>
+      </div>
+      <div class="field">
+        <div class="field-top">
+          <label>Contraintes et servitudes connues</label>
+          <button class="tip-btn" data-tip="Ces contraintes sont mentionnées dans le rapport et peuvent impacter significativement la valeur. Vérifiez le certificat d'urbanisme et les annexes du titre de propriété. En cas de doute, laissez vide.">?</button>
+        </div>
+        <div class="checkbox-group">
+          <label class="checkbox-item"><input type="checkbox" name="contraintes" value="Zone inondable (PPRi)"> Zone inondable</label>
+          <label class="checkbox-item"><input type="checkbox" name="contraintes" value="Glissement de terrain"> Glissement de terrain</label>
+          <label class="checkbox-item"><input type="checkbox" name="contraintes" value="Servitude de passage"> Servitude de passage</label>
+          <label class="checkbox-item"><input type="checkbox" name="contraintes" value="Ligne haute tension"> Ligne haute tension</label>
+          <label class="checkbox-item"><input type="checkbox" name="contraintes" value="Site classé / inscrit"> Site classé</label>
+          <label class="checkbox-item"><input type="checkbox" name="contraintes" value="Aucune contrainte connue"> Aucune</label>
+        </div>
+      </div>
+      <div class="grid2">
+        <div class="field">
+          <div class="field-top">
+            <label>Zonage PLU</label>
+            <button class="tip-btn" data-tip="Consultez le PLU de la commune sur le Géoportail de l'Urbanisme (gpu.fr) ou à la mairie. Le zonage détermine les règles de constructibilité (hauteur, emprise, destinations autorisées). Ex : UA, UB, N, A, 1AU…">?</button>
+          </div>
+          <input type="text" id="zonage_plu" placeholder="Zone UB — Zone UA — Zone N…">
+        </div>
+        <div class="field">
+          <div class="field-top">
+            <label>Notes libres sur le terrain</label>
+            <button class="tip-btn" data-tip="Observations spécifiques non couvertes par les champs ci-dessus : état des clôtures, végétation remarquable, puits, citerne, limite de propriété à vérifier, etc.">?</button>
+          </div>
+          <input type="text" id="notes_terrain" placeholder="Observations complémentaires…">
+        </div>
+      </div>
+      <div class="field">
+        <div class="field-top">
+          <label>Photos du terrain</label>
+          <button class="tip-btn" data-tip="Photos des clôtures, de l'accès, du terrain depuis la voie publique, vue générale depuis le fond du jardin. L'IA analysera ces photos pour enrichir la description du terrain.">?</button>
+        </div>
+        <div class="upload-zone" id="uz-terrain" onclick="document.getElementById('photos-terrain').click()">
+          <label>
+            <div class="upload-icon">📸</div>
+            <div class="upload-label">Photos terrain — Cliquer pour choisir</div>
+            <div class="upload-hint">JPEG, PNG, HEIC — max 10 photos — 20 Mo/photo</div>
+            <div class="upload-count" id="count-terrain" style="display:none"></div>
+            <input type="file" id="photos-terrain" multiple accept="image/*" onchange="handlePhotos('terrain',this)">
+          </label>
+        </div>
+      </div>
+    </div>
+    <div class="form-nav">
+      <button class="btn btn-glass" onclick="prevStep()">← Retour</button>
+      <button class="btn btn-navy" onclick="nextStep()">Suivant →</button>
+    </div>
+  </div>
+
+  <!-- ──────────── SECTION D ──────────── -->
+  <div id="sec-3" style="display:none">
+    <div class="sec-head">
+      <div class="sec-title"><span class="sec-badge">D</span> Description du bâti</div>
+      <div class="sec-desc">Structure, matériaux et équipements — Chapitre 3.1 du rapport.</div>
+    </div>
+    <div class="card">
+      <div class="grid2">
+        <div class="field">
+          <div class="field-top">
+            <label>Type de construction / Structure</label>
+            <button class="tip-btn" data-tip="Matériau principal des murs porteurs. En cas de doute, regardez les murs dans la cave ou les combles. La maçonnerie parpaing est la plus courante en France pour les constructions d'après-guerre.">?</button>
+          </div>
+          <select id="type_construction">
+            <option value="">— Sélectionner —</option>
+            <option>Maçonnerie parpaing béton</option>
+            <option>Maçonnerie brique</option>
+            <option>Pierre de taille</option>
+            <option>Béton banché</option>
+            <option>Ossature bois</option>
+            <option>Construction mixte</option>
+          </select>
+        </div>
+        <div class="field">
+          <div class="field-top">
+            <label>Matériau de couverture (toiture)</label>
+            <button class="tip-btn" data-tip="Matériau observable depuis le sol ou depuis les combles. En cas de doute sur le type de tuiles, prenez une photo — l'IA pourra identifier le matériau.">?</button>
+          </div>
+          <select id="materiau_toiture">
+            <option value="">— Sélectionner —</option>
+            <option>Tuiles canal</option>
+            <option>Tuiles mécaniques</option>
+            <option>Ardoises naturelles</option>
+            <option>Ardoises fibrociment</option>
+            <option>Zinc / Cuivre</option>
+            <option>Bac acier</option>
+            <option>Autre</option>
+          </select>
+        </div>
+        <div class="field">
+          <div class="field-top">
+            <label>Forme de la toiture</label>
+            <button class="tip-btn" data-tip="Visible depuis l'extérieur. 2 pans = versants avant/arrière. 4 pans = versants sur les 4 côtés. Terrasse = toit plat. La forme influe sur l'entretien et la durabilité.">?</button>
+          </div>
+          <select id="forme_toiture">
+            <option value="">— Sélectionner —</option>
+            <option>2 pans</option>
+            <option>4 pans</option>
+            <option>Toiture terrasse</option>
+            <option>Mansardée</option>
+            <option>Mixte</option>
+          </select>
+        </div>
+        <div class="field">
+          <div class="field-top">
+            <label>État général de la toiture</label>
+            <button class="tip-btn" data-tip="Évaluez depuis le sol ou depuis les combles. Signes de mauvais état : tuiles cassées ou manquantes, mousses/lichens importants, faîtage dégradé, traces d'humidité dans les combles.">?</button>
+          </div>
+          <select id="etat_toiture">
+            <option value="">— Sélectionner —</option>
+            <option>Bon état — récent ou entretenu</option>
+            <option>État moyen — usure normale</option>
+            <option>Mauvais état — travaux à prévoir</option>
+            <option>Inconnu / Non visible</option>
+          </select>
+        </div>
+        <div class="field">
+          <div class="field-top">
+            <label>Matériau des façades</label>
+            <button class="tip-btn" data-tip="Revêtement extérieur des murs. L'enduit ciment est le plus courant. La pierre de taille est un élément patrimonial valorisant. Le bardage bois nécessite un entretien régulier.">?</button>
+          </div>
+          <select id="materiau_facades">
+            <option value="">— Sélectionner —</option>
+            <option>Enduit ciment / mortier</option>
+            <option>Enduit à la chaux</option>
+            <option>Pierre apparente</option>
+            <option>Brique apparente</option>
+            <option>Bardage bois</option>
+            <option>Bardage métallique</option>
+          </select>
+        </div>
+        <div class="field">
+          <div class="field-top">
+            <label>État général des façades</label>
+            <button class="tip-btn" data-tip="Observez depuis la rue. Signes de mauvais état : fissures, enduit décollé, taches d'humidité, mousses, peinture écaillée. Prenez des photos pour les désordres (Section E).">?</button>
+          </div>
+          <select id="etat_facades">
+            <option value="">— Sélectionner —</option>
+            <option>Bon état</option>
+            <option>État moyen</option>
+            <option>Mauvais état — fissures / humidité</option>
+            <option>Inconnu</option>
+          </select>
+        </div>
+        <div class="field">
+          <div class="field-top">
+            <label>Menuiseries extérieures — matériau</label>
+            <button class="tip-btn" data-tip="Matériau des fenêtres, portes-fenêtres et volets. Le double vitrage est un critère important pour la performance énergétique (DPE). Le PVC récent est valorisant.">?</button>
+          </div>
+          <select id="menuiseries_ext">
+            <option value="">— Sélectionner —</option>
+            <option>Bois (simple vitrage)</option>
+            <option>Bois (double vitrage)</option>
+            <option>PVC (double vitrage)</option>
+            <option>Aluminium (double vitrage)</option>
+            <option>Aluminium (triple vitrage)</option>
+            <option>Mixte</option>
+          </select>
+        </div>
+        <div class="field">
+          <div class="field-top">
+            <label>Système de chauffage</label>
+            <button class="tip-btn" data-tip="Type et énergie du chauffage principal. Une chaudière gaz récente (moins de 10 ans) est un point positif. La PAC air/eau est valorisante. Les convecteurs électriques sont peu valorisants.">?</button>
+          </div>
+          <select id="chauffage">
+            <option value="">— Sélectionner —</option>
+            <option>Chaudière gaz (radiateurs)</option>
+            <option>Chaudière fioul (radiateurs)</option>
+            <option>Pompe à chaleur air/eau</option>
+            <option>Pompe à chaleur air/air</option>
+            <option>Poêle à bois / insert</option>
+            <option>Électrique (convecteurs)</option>
+            <option>Plancher chauffant</option>
+            <option>Autre / Mixte</option>
+          </select>
+        </div>
+        <div class="field">
+          <div class="field-top">
+            <label>Installation électrique</label>
+            <button class="tip-btn" data-tip="Vérifiez le tableau électrique (présence de disjoncteurs différentiels, nombre de circuits). Un tableau récent post-2000 est un point positif. Une installation vétuste peut nécessiter une mise aux normes coûteuse.">?</button>
+          </div>
+          <select id="etat_electrique">
+            <option value="">— Sélectionner —</option>
+            <option>Aux normes — tableau récent</option>
+            <option>Partiellement refaite</option>
+            <option>Vétuste — mise aux normes à prévoir</option>
+            <option>Inconnu</option>
+          </select>
+        </div>
+        <div class="field">
+          <div class="field-top">
+            <label>État de la plomberie</label>
+            <button class="tip-btn" data-tip="Évaluation générale des canalisations visibles (cave, combles). Des canalisations en plomb (avant 1948) ou en acier galvanisé sont à remplacer. Le cuivre et le PVC sont les matériaux modernes standards.">?</button>
+          </div>
+          <select id="etat_plomberie">
+            <option value="">— Sélectionner —</option>
+            <option>Bon état</option>
+            <option>Partiellement refaite</option>
+            <option>Vétuste</option>
+            <option>Inconnu</option>
+          </select>
+        </div>
+      </div>
+      <div class="field">
+        <div class="field-top">
+          <label>Sols intérieurs — description</label>
+          <button class="tip-btn" data-tip="Décrivez les revêtements de sol par niveau : ex. 'Carrelage grès cérame RDC, parquet chêne massif R+1, moquette chambres'. Cette description apparaît dans le Chapitre 3.1 du rapport.">?</button>
+        </div>
+        <input type="text" id="sols_interieurs" placeholder="Carrelage grès RDC, parquet chêne R+1, moquette chambres…">
+      </div>
+      <div class="field">
+        <div class="field-top">
+          <label>Notes libres sur le bâti</label>
+          <button class="tip-btn" data-tip="Travaux récents effectués, équipements particuliers (piscine, domotique), informations données par le propriétaire sur l'historique du bien, points à vérifier ou à compléter.">?</button>
+        </div>
+        <textarea id="notes_bati" placeholder="Travaux récents, équipements particuliers, informations du propriétaire…"></textarea>
+      </div>
+    </div>
+    <div class="card">
+      <div class="grid2">
+        <div class="field">
+          <div class="field-top">
+            <label>Photos extérieures du bâtiment</label>
+            <button class="tip-btn" data-tip="Prenez au minimum : façade principale, façade arrière, toiture (depuis le sol), menuiseries, abords. L'IA analysera ces photos pour enrichir la description du bâti et identifier d'éventuels désordres visuels.">?</button>
+          </div>
+          <div class="upload-zone" id="uz-ext" onclick="document.getElementById('photos-ext').click()">
+            <label>
+              <div class="upload-icon">🏠</div>
+              <div class="upload-label">Photos extérieures — Cliquer pour choisir</div>
+              <div class="upload-hint">Min. 4 photos — Façades, toiture, menuiseries</div>
+              <div class="upload-count" id="count-ext" style="display:none"></div>
+              <input type="file" id="photos-ext" multiple accept="image/*" onchange="handlePhotos('ext',this)">
+            </label>
+          </div>
+        </div>
+        <div class="field">
+          <div class="field-top">
+            <label>Photos intérieures</label>
+            <button class="tip-btn" data-tip="Prenez les pièces principales : séjour, cuisine, salles d'eau, combles, cave. L'IA analysera les sols, murs, plafonds et installations techniques visibles pour enrichir la description intérieure.">?</button>
+          </div>
+          <div class="upload-zone" id="uz-int" onclick="document.getElementById('photos-int').click()">
+            <label>
+              <div class="upload-icon">🛋</div>
+              <div class="upload-label">Photos intérieures — Cliquer pour choisir</div>
+              <div class="upload-hint">Min. 6 photos — Pièces, cuisine, salles d'eau</div>
+              <div class="upload-count" id="count-int" style="display:none"></div>
+              <input type="file" id="photos-int" multiple accept="image/*" onchange="handlePhotos('int',this)">
+            </label>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="form-nav">
+      <button class="btn btn-glass" onclick="prevStep()">← Retour</button>
+      <button class="btn btn-navy" onclick="nextStep()">Suivant →</button>
+    </div>
+  </div>
+
+  <!-- ──────────── SECTION E ──────────── -->
+  <div id="sec-4" style="display:none">
+    <div class="sec-head">
+      <div class="sec-title"><span class="sec-badge">E</span> Désordres constatés</div>
+      <div class="sec-desc">Un bloc par désordre — Chapitre 3.2 du rapport. Laisser vide les blocs non utilisés.
+        <button class="tip-btn" style="margin-left:8px" data-tip="Un désordre est toute anomalie physique observable : fissure, humidité, affaissement, décollement, etc. Décrivez chaque désordre séparément en précisant sa localisation exacte, sa nature et sa gravité estimée. En cas de doute sur la gravité, choisissez 'Fonctionnel'.">?</button>
+      </div>
+    </div>
+    <div id="desordres-container">
+    </div>
+    <div class="form-nav">
+      <button class="btn btn-glass" onclick="prevStep()">← Retour</button>
+      <button class="btn btn-navy" onclick="nextStep()">Suivant →</button>
+    </div>
+  </div>
+
+  <!-- ──────────── SECTION F ──────────── -->
+  <div id="sec-5" style="display:none">
+    <div class="sec-head">
+      <div class="sec-title"><span class="sec-badge">F</span> Tableau des surfaces</div>
+      <div class="sec-desc">Une ligne par pièce — Chapitre 3.3 du rapport.
+        <button class="tip-btn" style="margin-left:8px" data-tip="Mesurez ou estimez la surface de chaque pièce habitable et annexe. La surface Loi Carrez exclut les surfaces de moins de 1,80 m de hauteur, caves, garages et annexes. Commencez par le RDC, puis R+1, puis les annexes.">?</button>
+      </div>
+    </div>
+    <div class="card">
+      <div style="overflow-x:auto">
+        <table class="surf-table">
+          <thead>
+            <tr>
+              <th>Désignation <button class="tip-btn" data-tip="Type de pièce (séjour, chambre, cuisine…). Sélectionnez dans la liste ou saisissez librement.">?</button></th>
+              <th>Précision</th>
+              <th>Niveau <button class="tip-btn" data-tip="Étage où se trouve la pièce. RDC = Rez-de-chaussée.">?</button></th>
+              <th>Surface m² <button class="tip-btn" data-tip="Surface en m², arrondie à 0,5 m² près. Pour les espaces ouverts (séjour+cuisine), indiquez la surface totale.">?</button></th>
+            </tr>
+          </thead>
+          <tbody id="surf-body"></tbody>
+        </table>
+      </div>
+    </div>
+    <div class="form-nav">
+      <button class="btn btn-glass" onclick="prevStep()">← Retour</button>
+      <button class="btn btn-gold btn-lg" id="btn-generate" onclick="startGeneration()">
+        ✦ Générer le pré-rapport
+      </button>
+    </div>
+  </div>
+
+</div><!-- /page-form -->
+
+
+<!-- ════════════════════ PAGE 2 — GÉNÉRATION ════════════════════ -->
+<div class="page" id="page-gen">
+  <div class="pipeline-wrap">
+    <div class="pipeline-heading">
+      <h2>Génération en cours…</h2>
+      <p>L'IA assemble les données et rédige le pré-rapport — environ 30 à 60 secondes.</p>
+    </div>
+
+    <div class="pipe-step waiting" id="ps0">
+      <div class="pipe-icon">📋</div>
+      <div class="pipe-info">
+        <div class="pipe-name">Analyse des données du dossier</div>
+        <div class="pipe-detail" id="pd0">Extraction et structuration de tous les champs du formulaire</div>
+        <div class="pipe-error" id="pe0"></div>
+      </div>
+      <div class="pipe-status" id="pst0">○</div>
+    </div>
+
+    <div class="pipe-step waiting" id="ps1">
+      <div class="pipe-icon">🗺</div>
+      <div class="pipe-info">
+        <div class="pipe-name">Recherche géographique automatique</div>
+        <div class="pipe-detail" id="pd1">INSEE · DVF Étalab · PLU · marché immobilier local</div>
+        <div class="pipe-error" id="pe1"></div>
+      </div>
+      <div class="pipe-status" id="pst1">○</div>
+    </div>
+
+    <div class="pipe-step waiting" id="ps2">
+      <div class="pipe-icon">📚</div>
+      <div class="pipe-info">
+        <div class="pipe-name">Extraction du style de l'expert</div>
+        <div class="pipe-detail" id="pd2">Analyse du rapport de référence — reproduction du ton</div>
+        <div class="pipe-error" id="pe2"></div>
+      </div>
+      <div class="pipe-status" id="pst2">○</div>
+    </div>
+
+    <div class="pipe-step waiting" id="ps3">
+      <div class="pipe-icon">🔍</div>
+      <div class="pipe-info">
+        <div class="pipe-name">Analyse des photos par Vision IA</div>
+        <div class="pipe-detail" id="pd3">Terrain · Façades · Intérieurs · Désordres</div>
+        <div class="pipe-error" id="pe3"></div>
+      </div>
+      <div class="pipe-status" id="pst3">○</div>
+    </div>
+
+    <div class="pipe-step waiting" id="ps4">
+      <div class="pipe-icon">✍️</div>
+      <div class="pipe-info">
+        <div class="pipe-name">Génération du pré-rapport</div>
+        <div class="pipe-detail" id="pd4">Claude claude-sonnet-4-6 — 3 chapitres + tableau surfaces (8 000 tokens)</div>
+        <div class="pipe-error" id="pe4"></div>
+      </div>
+      <div class="pipe-status" id="pst4">○</div>
+    </div>
+
+    <div class="pipe-step waiting" id="ps5">
+      <div class="pipe-icon">📄</div>
+      <div class="pipe-info">
+        <div class="pipe-name">Export Word .docx prêt</div>
+        <div class="pipe-detail" id="pd5">Mise en page professionnelle — prêt à télécharger</div>
+        <div class="pipe-error" id="pe5"></div>
+      </div>
+      <div class="pipe-status" id="pst5">○</div>
+    </div>
+
+    <div id="pipeline-done" style="display:none">
+      <div class="pipeline-done">
+        <div class="pd-icon">✅</div>
+        <div class="pd-title">Pré-rapport généré</div>
+        <div class="pd-sub" id="pd-meta">Rapport prêt pour validation par l'expert.</div>
+        <button class="btn btn-gold btn-lg" style="margin:0 auto" onclick="showPage('report')">
+          Voir le rapport →
+        </button>
+      </div>
+    </div>
+  </div>
+</div><!-- /page-gen -->
+
+
+<!-- ════════════════════ PAGE 3 — RAPPORT ════════════════════ -->
+<div class="page" id="page-report">
+
+  <div class="rapport-toolbar">
+    <div class="rapport-title-bar">Pré-rapport d'expertise</div>
+    <div class="toolbar-actions">
+      <button class="toggle-ai" id="toggle-ai-btn" onclick="toggleAI()">
+        <div class="toggle-switch"></div>
+        Mentions IA
+      </button>
+      <button class="btn btn-glass btn-sm" onclick="showPage('form');canGoStep(0)">← Nouveau</button>
+      <button class="btn btn-navy btn-sm" id="btn-docx" onclick="downloadDocx()">⬇ Télécharger .docx</button>
+    </div>
+  </div>
+
+  <div id="rapport-content">
+    <!-- Généré dynamiquement par app.js -->
+  </div>
+
+</div><!-- /page-report -->
+
+</main><!-- /main -->
+
+<!-- TOAST -->
+<div class="toast" id="toast"><span id="toast-msg">✓ Action réalisée</span></div>
+
+<script src="app.js"></script>
+</body>
+</html>

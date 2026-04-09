@@ -1,0 +1,21 @@
+{
+  "name": "expert-immo-app",
+  "version": "1.0.0",
+  "description": "Application web de génération automatique de pré-rapports d'expertise immobilière via Claude AI",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "nodemon server.js"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.36.3",
+    "docx": "^8.5.0",
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2",
+    "mammoth": "^1.8.0",
+    "multer": "^1.4.5-lts.1"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.0"
+  }
+}
