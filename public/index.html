@@ -276,12 +276,28 @@
           <label class="checkbox-item"><input type="checkbox" name="annexes" value="Terrasse couverte"> Terrasse couverte</label>
         </div>
       </div>
-      <div class="field">
-        <div class="field-top">
-          <label>Notes libres sur le bien</label>
-          <button class="tip-btn" data-tip="Tout ce qui ne rentre pas dans les cases : particularités architecturales, travaux en cours, informations données par le propriétaire, points à vérifier. L'IA intègre ces notes dans le rapport.">?</button>
+      <div class="grid2">
+        <div class="field">
+          <div class="field-top">
+            <label>Situation locative</label>
+            <button class="tip-btn" data-tip="Le bien est-il occupé au moment de la visite ? Un bien occupé peut avoir une valeur inférieure à un bien libre (décote de 10 à 20 % selon la durée et le régime du bail). Cette mention est obligatoire dans le rapport JALTA.">?</button>
+          </div>
+          <select id="situation_locative">
+            <option value="">— Sélectionner —</option>
+            <option>Libre d'occupation</option>
+            <option>Occupé par le propriétaire</option>
+            <option>Occupé — bail d'habitation en cours</option>
+            <option>Occupé — bail commercial en cours</option>
+            <option>Inconnu</option>
+          </select>
         </div>
-        <textarea id="notes_bien" placeholder="Observations générales lors de la visite, particularités, points à noter…"></textarea>
+        <div class="field">
+          <div class="field-top">
+            <label>Notes libres sur le bien</label>
+            <button class="tip-btn" data-tip="Tout ce qui ne rentre pas dans les cases : particularités architecturales, travaux en cours, informations données par le propriétaire, points à vérifier. L'IA intègre ces notes dans le rapport.">?</button>
+          </div>
+          <textarea id="notes_bien" placeholder="Observations générales lors de la visite, particularités, points à noter…"></textarea>
+        </div>
       </div>
     </div>
     <div class="form-nav">
@@ -586,6 +602,20 @@
             <option>Bon état</option>
             <option>Partiellement refaite</option>
             <option>Vétuste</option>
+            <option>Inconnu</option>
+          </select>
+        </div>
+        <div class="field">
+          <div class="field-top">
+            <label>Assainissement</label>
+            <button class="tip-btn" data-tip="Mode d'assainissement du bien. À la Martinique, l'assainissement autonome (fosse) est courant hors zones urbanisées. Le type d'assainissement est mentionné dans le rapport JALTA et peut influer sur la valeur du bien.">?</button>
+          </div>
+          <select id="assainissement">
+            <option value="">— Sélectionner —</option>
+            <option>Tout-à-l'égout (TAE)</option>
+            <option>Fosse septique toutes eaux</option>
+            <option>Fosse septique + filtre</option>
+            <option>Micro-station d'épuration</option>
             <option>Inconnu</option>
           </select>
         </div>

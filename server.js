@@ -6,55 +6,92 @@ const mammoth  = require('mammoth');
 const {
   Document, Packer, Paragraph, TextRun, HeadingLevel,
   Table, TableRow, TableCell, WidthType, AlignmentType,
-  BorderStyle, Header, PageBreak, UnderlineType, ShadingType
+  BorderStyle, Header, Footer, ShadingType, PageNumber,
+  NumberFormat, convertInchesToTwip
 } = require('docx');
+
+// ── Validation clé API au démarrage ──────────────────────────────────────────
+const API_KEY = process.env.ANTHROPIC_API_KEY;
+if (!API_KEY || API_KEY === 'sk-ant-api-xxx' || !API_KEY.startsWith('sk-ant-')) {
+  console.error('\n╔══════════════════════════════════════════════════════╗');
+  console.error('║  ERREUR : Clé API Anthropic manquante ou invalide    ║');
+  console.error('║                                                      ║');
+  console.error('║  1. Ouvrir le fichier .env à la racine du projet     ║');
+  console.error('║  2. Remplacer sk-ant-api-xxx par votre vraie clé     ║');
+  console.error('║     → console.anthropic.com → API Keys               ║');
+  console.error('║  3. Relancer : npm start                             ║');
+  console.error('╚══════════════════════════════════════════════════════╝\n');
+  process.exit(1);
+}
 
 const app    = express();
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 25 * 1024 * 1024 } });
-const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+const client = new Anthropic({ apiKey: API_KEY });
 
 app.use(express.json({ limit: '50mb' }));
 app.use(express.static('public'));
 
 // ─────────────────────────────────────────────────────────────────────────────
+// COULEURS JALTA
+// ─────────────────────────────────────────────────────────────────────────────
+const C = {
+  NAVY:    '1F3864',
+  GREEN:   '92D050',
+  NAVY_L:  'D9E2F3',
+  GRAY:    'F2F2F2',
+  GRAY_MED:'BFBFBF',
+  WHITE:   'FFFFFF',
+  BLACK:   '000000',
+  DARK:    '404040',
+  AMBER:   'C47A00',
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
 // PROMPTS
 // ─────────────────────────────────────────────────────────────────────────────
 
-const SYSTEM_PROMPT = `Tu es un expert immobilier certifié, spécialisé dans la rédaction de rapports d'expertise immobilière professionnels. Tu rédiges pour le compte d'un expert immobilier dont tu dois reproduire EXACTEMENT le style, le ton, le vocabulaire et la structure — tels qu'ils apparaissent dans les rapports de référence de sa base de connaissance.
+const SYSTEM_PROMPT = `Tu es un expert immobilier certifié TEGOVA (6e édition) et Charte de l'Expertise Immobilière (5e édition), spécialisé dans la rédaction de rapports d'expertise conformes aux standards du Cabinet JALTA en Martinique.
 
-Ta mission : générer les sections narratives d'un pré-rapport d'expertise à partir des données saisies dans le formulaire, des analyses de photos fournies, des données géographiques, et des rapports de référence.
+Tu rédiges pour le compte d'un expert immobilier et dois reproduire EXACTEMENT son style, son ton et son vocabulaire — tels qu'ils apparaissent dans les rapports de référence de sa base de connaissance.
+
+STYLE ET VOCABULAIRE JALTA :
+- Formules d'entrée : "Au jour de notre visite...", "Nous avons notamment relevé...", "Il s'agit d'un bâtiment en dur..."
+- Observations visuelles : toujours au conditionnel ou avec "à l'examen visuel", "semble", "paraît"
+- Style : impersonnel, troisième personne, indicatif présent pour les faits constatés
+- Vocabulaire : "le bien objet de la présente expertise", "au sens de la Charte", "TEGOVA 6e édition", "valeur vénale", "critères de pondération"
+- Mentions manquantes : [à rajouter par l'expert] (jamais inventer)
+- Norme de surface : Loi Boutin pour la surface habitable, avec coefficient de pondération JALTA
+
+Ta mission : générer les sections narratives du rapport JALTA en JSON structuré, à partir des données saisies et des analyses de photos.
 
 RÈGLES ABSOLUES :
-1. Reproduire EXACTEMENT le style des exemples fournis — jamais un style générique
+1. Reproduire EXACTEMENT le style JALTA — jamais un style générique
 2. Ne JAMAIS générer de valeurs vénales, prix, estimations ou calculs de valeur
-3. Si une information manque → indiquer [À COMPLÉTER PAR L'EXPERT], jamais inventer
+3. Si une information manque → [à rajouter par l'expert], jamais inventer
 4. Toute observation issue des photos → conditionnel ou "à l'examen visuel"
-5. Langue : français professionnel, vocabulaire technique immobilier
-6. Longueur : adaptée au type de bien et à la richesse des données`;
+5. Langue : français professionnel, vocabulaire technique immobilier Antilles
+6. Retourner UNIQUEMENT le JSON valide demandé, sans aucun texte avant ni après`;
 
 function buildChapter1Prompt(adresse) {
-  return `Tu es un expert immobilier certifié. Rédige le Chapitre 1 — Situation Géographique et Environnement d'un rapport d'expertise pour le bien situé à :
+  return `Tu es un expert immobilier certifié. Rédige la section "SITUATION" d'un rapport d'expertise JALTA pour le bien situé à :
 
 ${adresse}
 
-Recherche et inclus les données suivantes (INSEE, DVF, PLU, transports) et rédige en 5 sous-parties :
+Recherche et inclus les données suivantes (INSEE, DVF, PLU, transports) et rédige en 4 sous-parties :
 
-### 1.1 Présentation de la commune
+**1. Présentation de la commune**
 [Commune, département, région, population INSEE, dynamisme économique, bassin d'emploi]
 
-### 1.2 Situation dans la commune
+**2. Situation dans la commune**
 [Quartier ou secteur, caractère résidentiel/commercial/mixte, standing, proximité centre-ville]
 
-### 1.3 Accessibilité et transports
-[Axes routiers, autoroutes, gare, transports en commun, temps trajets grandes villes]
+**3. Accessibilité et transports**
+[Axes routiers, transports en commun, temps trajets grandes villes]
 
-### 1.4 Environnement immédiat
-[Commerces de proximité, écoles, services, espaces verts, nuisances éventuelles]
+**4. Analyse du marché immobilier local**
+[Prix m² médian maison/appartement, évolution 12-24 mois, données DVF récentes]
 
-### 1.5 Analyse du marché immobilier local
-[Prix m² médian maison/appartement, évolution 12-24 mois, tension locative, données DVF récentes]
-
-Règles : ton professionnel d'expert immobilier, 300 à 500 mots, indiquer la source et la date de chaque donnée chiffrée. Retourner uniquement le texte du chapitre.`;
+Style JALTA : "Le bien objet de la présente expertise est situé à...", "La commune de... est dotée de...", "Le secteur présente les caractéristiques suivantes...". Ton professionnel, 250 à 400 mots, indiquer la source et la date de chaque donnée chiffrée. Retourner uniquement le texte de la section.`;
 }
 
 function buildStylePrompt(docText) {
@@ -95,8 +132,14 @@ Conditionnel obligatoire. JSON uniquement.`
 
 function buildMainPrompt(data) {
   const { formData, chapter1, style, photos, desordres, surfaces } = data;
+
+  const surfacesArr = formData.surfaces_array || [];
+  const surfacesText = surfacesArr.length
+    ? surfacesArr.map(s => `${s.type}${s.prec ? ' — ' + s.prec : ''} | ${s.niveau} | ${s.m2} m²`).join('\n')
+    : (surfaces || '[à rajouter par l\'expert]');
+
   return `=== STYLE DE L'EXPERT (reproduire exactement) ===
-${style || 'Style professionnel standard — français technique immobilier.'}
+${style || 'Style JALTA professionnel — français technique immobilier Antilles — TEGOVA 6e édition.'}
 
 === DONNÉES DU DOSSIER ===
 Référence : ${formData.ref_dossier}
@@ -104,12 +147,13 @@ Date de visite : ${formData.date_visite}
 Type de mission : ${formData.type_mission}
 Donneur d'ordre : ${formData.nom_donneur_ordre} (${formData.donneur_ordre})
 Adresse : ${formData.adresse_bien}
-Références cadastrales : ${formData.refs_cadastrales || '[À COMPLÉTER PAR L\'EXPERT]'}
+Références cadastrales : ${formData.refs_cadastrales || '[à rajouter par l\'expert]'}
 Régime juridique : ${formData.regime_juridique}
+Situation locative : ${formData.situation_locative || '[à rajouter par l\'expert]'}
 DPE : Classe ${formData.dpe_classe || 'NC'} — GES : Classe ${formData.ges_classe || 'NC'}
 Type de bien : ${formData.type_bien}
-Année de construction : ${formData.annee_construction || '[À COMPLÉTER PAR L\'EXPERT]'}
-Niveaux : ${formData.nb_niveaux || '[À COMPLÉTER PAR L\'EXPERT]'}
+Année de construction : ${formData.annee_construction || '[à rajouter par l\'expert]'}
+Niveaux : ${formData.nb_niveaux || '[à rajouter par l\'expert]'}
 
 === TERRAIN ===
 Superficie : ${formData.superficie_terrain} m²
@@ -119,91 +163,57 @@ Orientation : ${formData.orientation}
 Accès : ${formData.acces_terrain}
 Clôtures : ${formData.clotures}
 Réseaux : ${formData.reseaux}
-Zonage PLU : ${formData.zonage_plu || '[À COMPLÉTER PAR L\'EXPERT]'}
+Assainissement : ${formData.assainissement || '[à rajouter par l\'expert]'}
+Zonage PLU : ${formData.zonage_plu || '[à rajouter par l\'expert]'}
 Contraintes : ${formData.contraintes}
 Notes expert : ${formData.notes_terrain || ''}
-Observations photos terrain : ${photos.terrain || 'Aucune photo fournie'}
+Observations photos terrain : ${photos.terrain || 'Aucune photo fournie — [à rajouter par l\'expert]'}
 
 === BÂTI ===
 Structure : ${formData.type_construction}
 Toiture : ${formData.materiau_toiture} — ${formData.forme_toiture} — État : ${formData.etat_toiture}
 Façades : ${formData.materiau_facades} — État : ${formData.etat_facades}
 Menuiseries ext : ${formData.menuiseries_ext}
-Sols intérieurs : ${formData.sols_interieurs || '[À COMPLÉTER PAR L\'EXPERT]'}
+Sols intérieurs : ${formData.sols_interieurs || '[à rajouter par l\'expert]'}
 Chauffage : ${formData.chauffage}
 Électricité : ${formData.etat_electrique}
 Plomberie : ${formData.etat_plomberie}
 Notes expert : ${formData.notes_bati || ''}
-Observations photos extérieures : ${photos.ext || 'Aucune photo fournie'}
-Observations photos intérieures : ${photos.int || 'Aucune photo fournie'}
+Observations photos extérieures : ${photos.ext || 'Aucune photo fournie — [à rajouter par l\'expert]'}
+Observations photos intérieures : ${photos.int || 'Aucune photo fournie — [à rajouter par l\'expert]'}
 
 === DÉSORDRES CONSTATÉS ===
 ${desordres || 'Aucun désordre renseigné.'}
 Observations photos désordres : ${photos.desordres || 'Aucune photo fournie'}
 
 === SURFACES ===
-| Désignation | Niveau | Surface (m²) |
-|-------------|--------|--------------|
-${surfaces || '[À COMPLÉTER PAR L\'EXPERT]'}
+${surfacesText}
 
-=== CHAPITRE 1 DÉJÀ RÉDIGÉ (intégrer tel quel) ===
+=== SECTION SITUATION GÉOGRAPHIQUE (déjà rédigée — intégrer telle quelle) ===
 ${chapter1}
 
 ---
 
-GÉNÈRE LE PRÉ-RAPPORT COMPLET avec cette structure exacte :
+GÉNÈRE UN JSON avec exactement ces clés (UNIQUEMENT le JSON, sans markdown ni texte avant/après) :
 
-# RAPPORT D'EXPERTISE IMMOBILIÈRE
-## Pré-rapport soumis à validation
-
-**Référence dossier :** ${formData.ref_dossier}
-**Date de visite :** ${formData.date_visite}
-**Adresse :** ${formData.adresse_bien}
-**Nature de la mission :** ${formData.type_mission}
-**Donneur d'ordre :** ${formData.nom_donneur_ordre} (${formData.donneur_ordre})
-
-*Le présent document constitue un pré-rapport préparatoire. Les valeurs vénales et conclusions définitives feront l'objet d'une analyse complémentaire par l'expert signataire.*
-
----
-
-## CHAPITRE 1 — SITUATION GÉOGRAPHIQUE ET ENVIRONNEMENT
-[Intégrer le chapitre 1 déjà rédigé EXACTEMENT, sans modification]
-
----
-
-## CHAPITRE 2 — DESCRIPTION DU TERRAIN
-[Rédiger : situation/accès → caractéristiques physiques → superficie → réseaux → contraintes → PLU. 150-300 mots]
-
----
-
-## CHAPITRE 3 — ÉTAT DU BIEN ET DESCRIPTION DES DÉSORDRES
-
-### 3.1 Description générale et matériaux
-[Rédiger : construction → toiture → façades/menuiseries → intérieurs → équipements → DPE. 250-400 mots]
-
-### 3.2 Désordres constatés
-[Format par désordre, du plus grave au moins grave :
-**Désordre n°X — [Localisation]**
-Nature : ...
-Gravité : ...
-Observation : ... (conditionnel / "à l'examen visuel")
-Origine probable : ...
-Si aucun désordre : "Aucun désordre significatif n'a été constaté lors de la visite."]
-
-### 3.3 Tableau récapitulatif des surfaces
-| Désignation | Niveau | Surface (m²) |
-|-------------|--------|--------------|
-[Reproduire les lignes + totaux]
-| **Surface habitable totale** | | **X,XX m²** |
-| **Surface annexes** | | **X,XX m²** |
-| **Surface totale** | | **X,XX m²** |`;
+{
+  "resume_mission": "Texte introductif de la mission en 2-3 phrases style JALTA : objet de la mission, référence, donneur d'ordre, date de visite.",
+  "situation": "Texte complet section SITUATION — intégrer la section géographique déjà rédigée telle quelle.",
+  "description_terrain": "Texte section DESCRIPTION DU TERRAIN — au moins 150 mots — style JALTA : 'Le terrain objet de la présente expertise...', surface, forme, accès, clôtures, réseaux, PLU, contraintes.",
+  "description_bati": "Texte section DESCRIPTION DU BÂTI (extérieur et intérieur) — au moins 200 mots — style JALTA : 'Il s'agit d'un bâtiment en dur...', structure, toiture, façades, menuiseries, intérieur, équipements, DPE.",
+  "desordres_texte": "Texte section DÉSORDRES — liste tous les désordres en style JALTA avec conditionnel — si aucun : 'Au jour de notre visite, aucun désordre significatif n'a été constaté.'",
+  "jugement_favorable": ["Point favorable 1", "Point favorable 2", "..."],
+  "jugement_defavorable": ["Point défavorable 1", "Point défavorable 2", "..."],
+  "elements_jugement_intro": "Phrase d'introduction des éléments de jugement style JALTA.",
+  "conclusion": "Texte de conclusion du rapport — 3-5 phrases — style JALTA : synthèse de la mission, rappel normes TEGOVA, mention que la valeur vénale sera arrêtée par l'expert signataire."
+}`;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
 // ROUTES
 // ─────────────────────────────────────────────────────────────────────────────
 
-// POST /api/chapter1 — Recherche géographique (web_search)
+// POST /api/chapter1
 app.post('/api/chapter1', async (req, res) => {
   try {
     const { adresse } = req.body;
@@ -230,7 +240,7 @@ app.post('/api/chapter1', async (req, res) => {
   }
 });
 
-// POST /api/extract-style — Extraction style depuis rapport de référence
+// POST /api/extract-style
 app.post('/api/extract-style', upload.single('document'), async (req, res) => {
   try {
     if (!req.file) return res.json({ style: null });
@@ -238,9 +248,8 @@ app.post('/api/extract-style', upload.single('document'), async (req, res) => {
     let docText = '';
     if (req.file.originalname.endsWith('.docx')) {
       const result = await mammoth.extractRawText({ buffer: req.file.buffer });
-      docText = result.value.slice(0, 8000); // Limite pour le contexte
+      docText = result.value.slice(0, 8000);
     } else if (req.file.originalname.endsWith('.pdf') || req.file.mimetype === 'application/pdf') {
-      // Envoi direct en base64 pour les PDF
       const response = await client.messages.create({
         model: process.env.CLAUDE_MODEL || 'claude-sonnet-4-6',
         max_tokens: 1500,
@@ -270,7 +279,7 @@ app.post('/api/extract-style', upload.single('document'), async (req, res) => {
   }
 });
 
-// POST /api/analyze-photos — Analyse Vision IA (4 catégories)
+// POST /api/analyze-photos
 app.post('/api/analyze-photos', upload.fields([
   { name: 'terrain', maxCount: 10 },
   { name: 'ext', maxCount: 15 },
@@ -287,11 +296,7 @@ app.post('/api/analyze-photos', upload.fields([
 
       const imageBlocks = files.map(f => ({
         type: 'image',
-        source: {
-          type: 'base64',
-          media_type: f.mimetype,
-          data: f.buffer.toString('base64')
-        }
+        source: { type: 'base64', media_type: f.mimetype, data: f.buffer.toString('base64') }
       }));
 
       const response = await client.messages.create({
@@ -300,10 +305,7 @@ app.post('/api/analyze-photos', upload.fields([
         temperature: 0,
         messages: [{
           role: 'user',
-          content: [
-            ...imageBlocks,
-            { type: 'text', text: buildPhotoPrompt(cat) }
-          ]
+          content: [...imageBlocks, { type: 'text', text: buildPhotoPrompt(cat) }]
         }]
       });
       results[cat] = response.content[0].text;
@@ -316,7 +318,7 @@ app.post('/api/analyze-photos', upload.fields([
   }
 });
 
-// POST /api/generate — Génération principale du pré-rapport
+// POST /api/generate
 app.post('/api/generate', async (req, res) => {
   try {
     const response = await client.messages.create({
@@ -327,19 +329,42 @@ app.post('/api/generate', async (req, res) => {
       messages: [{ role: 'user', content: buildMainPrompt(req.body) }]
     });
 
-    const report = response.content[0].text;
-    res.json({ report });
+    const raw = response.content[0].text.trim();
+
+    // Extraire le JSON (au cas où Claude ajouterait du texte autour)
+    const jsonMatch = raw.match(/\{[\s\S]+\}/);
+    let sections = null;
+    let report = raw;
+
+    if (jsonMatch) {
+      try {
+        sections = JSON.parse(jsonMatch[0]);
+        // Générer un rapport markdown lisible pour l'aperçu
+        report = buildMarkdownFromSections(sections, req.body.formData);
+      } catch (e) {
+        console.warn('[generate] JSON parse failed, using raw text');
+      }
+    }
+
+    res.json({ report, sections });
   } catch (err) {
     console.error('[generate]', err.message);
     res.status(500).json({ error: err.message });
   }
 });
 
-// POST /api/export-docx — Export Word
+// POST /api/export-docx
 app.post('/api/export-docx', async (req, res) => {
   try {
-    const { report, refDossier } = req.body;
-    const buffer = await generateDocx(report);
+    const { report, sections, formData, refDossier } = req.body;
+    let buffer;
+
+    if (sections && formData) {
+      buffer = await generateJaltaDocx(sections, formData);
+    } else {
+      buffer = await generateDocx(report || '');
+    }
+
     const filename = `${refDossier || 'PreRapport'}_${new Date().toISOString().slice(0,10)}.docx`;
     res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
     res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document');
@@ -351,39 +376,794 @@ app.post('/api/export-docx', async (req, res) => {
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
-// GÉNÉRATION DOCX
+// MARKDOWN PREVIEW (aperçu HTML)
+// ─────────────────────────────────────────────────────────────────────────────
+
+function buildMarkdownFromSections(sections, formData) {
+  const fd = formData || {};
+  return `# RAPPORT D'EXPERTISE IMMOBILIÈRE
+## Pré-rapport soumis à validation
+
+**Référence dossier :** ${fd.ref_dossier || '[à rajouter par l\'expert]'}
+**Date de visite :** ${fd.date_visite || '[à rajouter par l\'expert]'}
+**Adresse :** ${fd.adresse_bien || '[à rajouter par l\'expert]'}
+**Nature de la mission :** ${fd.type_mission || '[à rajouter par l\'expert]'}
+**Donneur d'ordre :** ${fd.nom_donneur_ordre || ''} (${fd.donneur_ordre || ''})
+
+*Le présent document constitue un pré-rapport préparatoire. Les valeurs vénales et conclusions définitives feront l'objet d'une analyse complémentaire par l'expert signataire.*
+
+---
+
+## I — RÉSUMÉ DE LA MISSION
+
+${sections.resume_mission || '[à rajouter par l\'expert]'}
+
+---
+
+## II — SITUATION GÉOGRAPHIQUE ET ENVIRONNEMENT
+
+${sections.situation || '[à rajouter par l\'expert]'}
+
+---
+
+## III — DESCRIPTION DU TERRAIN
+
+${sections.description_terrain || '[à rajouter par l\'expert]'}
+
+---
+
+## IV — DESCRIPTION DU BÂTI
+
+${sections.description_bati || '[à rajouter par l\'expert]'}
+
+---
+
+## V — DÉSORDRES CONSTATÉS
+
+${sections.desordres_texte || '[à rajouter par l\'expert]'}
+
+---
+
+## VI — ÉLÉMENTS DE JUGEMENT
+
+${sections.elements_jugement_intro || ''}
+
+**Éléments favorables :**
+${(sections.jugement_favorable || []).map(p => '- ' + p).join('\n') || '[à rajouter par l\'expert]'}
+
+**Éléments défavorables :**
+${(sections.jugement_defavorable || []).map(p => '- ' + p).join('\n') || '[à rajouter par l\'expert]'}
+
+---
+
+## CONCLUSION
+
+${sections.conclusion || '[à rajouter par l\'expert]'}`;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// GÉNÉRATION DOCX JALTA
+// ─────────────────────────────────────────────────────────────────────────────
+
+// Helpers
+function noBorders() {
+  const none = { style: BorderStyle.NONE, size: 0, color: C.WHITE };
+  return { top: none, bottom: none, left: none, right: none, insideH: none, insideV: none };
+}
+
+function cellBorder(color = C.GRAY_MED) {
+  const b = { style: BorderStyle.SINGLE, size: 4, color };
+  return { top: b, bottom: b, left: b, right: b };
+}
+
+function shadedCell(fill, children, opts = {}) {
+  return new TableCell({
+    shading: { fill, type: ShadingType.CLEAR, color: C.WHITE },
+    borders: opts.borders || noBorders(),
+    width: opts.width,
+    columnSpan: opts.columnSpan,
+    verticalAlign: opts.verticalAlign || 'center',
+    margins: opts.margins || { top: 80, bottom: 80, left: 120, right: 120 },
+    children
+  });
+}
+
+function navyBanner(text, fontSize = 22) {
+  return new Table({
+    width: { size: 100, type: WidthType.PERCENTAGE },
+    borders: noBorders(),
+    rows: [new TableRow({
+      children: [shadedCell(C.NAVY, [
+        new Paragraph({
+          children: [new TextRun({ text, bold: true, color: C.WHITE, size: fontSize, font: 'Times New Roman' })],
+          alignment: AlignmentType.LEFT,
+          spacing: { before: 60, after: 60 }
+        })
+      ], { borders: noBorders() })]
+    })]
+  });
+}
+
+function subBanner(text) {
+  return new Table({
+    width: { size: 100, type: WidthType.PERCENTAGE },
+    borders: noBorders(),
+    rows: [new TableRow({
+      children: [shadedCell(C.NAVY_L, [
+        new Paragraph({
+          children: [new TextRun({ text, bold: true, color: C.NAVY, size: 20, font: 'Times New Roman' })],
+          alignment: AlignmentType.LEFT,
+          spacing: { before: 40, after: 40 }
+        })
+      ], { borders: noBorders() })]
+    })]
+  });
+}
+
+function bodyPara(text, opts = {}) {
+  const runs = [];
+  // Traiter les [à rajouter par l'expert] en orange
+  const parts = text.split(/(\[à rajouter par l'expert\])/gi);
+  for (const part of parts) {
+    if (part.toLowerCase() === "[à rajouter par l'expert]") {
+      runs.push(new TextRun({ text: part, color: C.AMBER, size: opts.size || 20, font: 'Times New Roman', bold: true }));
+    } else if (part) {
+      runs.push(new TextRun({ text: part, size: opts.size || 20, font: 'Times New Roman', color: opts.color || C.DARK }));
+    }
+  }
+  return new Paragraph({
+    children: runs.length ? runs : [new TextRun({ text, size: opts.size || 20, font: 'Times New Roman', color: opts.color || C.DARK })],
+    alignment: opts.alignment || AlignmentType.JUSTIFIED,
+    spacing: { before: opts.before || 60, after: opts.after || 100, line: opts.line || 276 }
+  });
+}
+
+function spacer(pts = 200) {
+  return new Paragraph({ text: '', spacing: { before: 0, after: pts } });
+}
+
+function pageBreak() {
+  return new Paragraph({ pageBreakBefore: true, children: [new TextRun('')] });
+}
+
+function imagePlaceholder(label) {
+  return new Table({
+    width: { size: 100, type: WidthType.PERCENTAGE },
+    borders: noBorders(),
+    rows: [new TableRow({
+      children: [new TableCell({
+        shading: { fill: C.GRAY, type: ShadingType.CLEAR },
+        borders: { top: { style: BorderStyle.SINGLE, size: 4, color: C.GRAY_MED }, bottom: { style: BorderStyle.SINGLE, size: 4, color: C.GRAY_MED }, left: { style: BorderStyle.SINGLE, size: 4, color: C.GRAY_MED }, right: { style: BorderStyle.SINGLE, size: 4, color: C.GRAY_MED } },
+        margins: { top: 400, bottom: 400, left: 200, right: 200 },
+        children: [new Paragraph({
+          alignment: AlignmentType.CENTER,
+          children: [
+            new TextRun({ text: label, color: C.AMBER, size: 20, bold: true, font: 'Times New Roman' })
+          ]
+        })]
+      })]
+    })]
+  });
+}
+
+function buildCoverPage(formData) {
+  const fd = formData || {};
+  const items = [
+    pageBreak(),
+    // Bandeau titre principal
+    new Table({
+      width: { size: 100, type: WidthType.PERCENTAGE },
+      borders: noBorders(),
+      rows: [new TableRow({
+        children: [shadedCell(C.NAVY, [
+          new Paragraph({
+            alignment: AlignmentType.CENTER,
+            spacing: { before: 200, after: 100 },
+            children: [new TextRun({ text: 'RAPPORT D\'EXPERTISE IMMOBILIÈRE', bold: true, color: C.WHITE, size: 36, font: 'Times New Roman' })]
+          }),
+          new Paragraph({
+            alignment: AlignmentType.CENTER,
+            spacing: { before: 60, after: 200 },
+            children: [new TextRun({ text: 'Pré-rapport soumis à validation de l\'expert signataire', color: C.NAVY_L, size: 22, font: 'Times New Roman', italics: true })]
+          })
+        ], { borders: noBorders() })]
+      })]
+    }),
+    spacer(300),
+
+    // Tableau identité dossier
+    new Table({
+      width: { size: 100, type: WidthType.PERCENTAGE },
+      borders: noBorders(),
+      rows: [
+        buildCoverRow('Référence dossier', fd.ref_dossier || '[à rajouter par l\'expert]'),
+        buildCoverRow('Date de visite', fd.date_visite || '[à rajouter par l\'expert]'),
+        buildCoverRow('Adresse du bien', fd.adresse_bien || '[à rajouter par l\'expert]'),
+        buildCoverRow('Type de bien', fd.type_bien || '[à rajouter par l\'expert]'),
+        buildCoverRow('Nature de la mission', fd.type_mission || '[à rajouter par l\'expert]'),
+        buildCoverRow('Donneur d\'ordre', `${fd.nom_donneur_ordre || ''} — ${fd.donneur_ordre || ''}`.replace(/^ — | — $/, '')),
+        buildCoverRow('Régime juridique', fd.regime_juridique || '[à rajouter par l\'expert]'),
+        buildCoverRow('Références cadastrales', fd.refs_cadastrales || '[à rajouter par l\'expert]'),
+      ]
+    }),
+
+    spacer(400),
+    imagePlaceholder('[à rajouter par l\'expert] — Photo de couverture du bien'),
+    spacer(300),
+
+    // Clause confidentialité
+    new Paragraph({
+      alignment: AlignmentType.CENTER,
+      spacing: { before: 100, after: 60 },
+      children: [new TextRun({ text: 'CLAUSE DE CONFIDENTIALITÉ', bold: true, size: 18, font: 'Times New Roman', color: C.NAVY })]
+    }),
+    new Paragraph({
+      alignment: AlignmentType.JUSTIFIED,
+      spacing: { before: 60, after: 60 },
+      children: [new TextRun({
+        text: 'Le présent rapport est établi à la demande et à l\'usage exclusif du donneur d\'ordre. Il ne peut être communiqué à des tiers sans l\'accord écrit de l\'expert signataire. Toute reproduction partielle ou totale est interdite. Ce document constitue un pré-rapport préparatoire — les valeurs vénales et conclusions définitives feront l\'objet d\'une validation complémentaire par l\'expert signataire conformément à la Charte de l\'Expertise Immobilière (5e édition) et au référentiel TEGOVA (6e édition).',
+        size: 17, font: 'Times New Roman', color: C.DARK, italics: true
+      })]
+    }),
+  ];
+  return items;
+}
+
+function buildCoverRow(label, value) {
+  return new TableRow({
+    children: [
+      shadedCell(C.NAVY_L, [
+        new Paragraph({ children: [new TextRun({ text: label, bold: true, size: 20, font: 'Times New Roman', color: C.NAVY })], spacing: { before: 40, after: 40 } })
+      ], { width: { size: 35, type: WidthType.PERCENTAGE }, borders: { bottom: { style: BorderStyle.SINGLE, size: 2, color: C.WHITE } } }),
+      shadedCell(C.GRAY, [
+        new Paragraph({ children: [new TextRun({ text: value, size: 20, font: 'Times New Roman', color: value.includes('[à rajouter') ? C.AMBER : C.DARK })], spacing: { before: 40, after: 40 } })
+      ], { width: { size: 65, type: WidthType.PERCENTAGE }, borders: { bottom: { style: BorderStyle.SINGLE, size: 2, color: C.WHITE } } })
+    ]
+  });
+}
+
+function buildSommaire() {
+  const entries = [
+    ['I', 'Résumé de la mission'],
+    ['II', 'Expertise détaillée'],
+    ['III', 'Situation géographique'],
+    ['IV', 'Description du bien'],
+    ['V', 'Éléments de jugement'],
+    ['VI', 'Évaluation'],
+    ['', 'Conclusion'],
+    ['', 'Photographies'],
+    ['', 'Annexes'],
+    ['', 'Glossaire'],
+  ];
+
+  return [
+    pageBreak(),
+    navyBanner('SOMMAIRE'),
+    spacer(150),
+    ...entries.map(([num, titre]) =>
+      new Table({
+        width: { size: 100, type: WidthType.PERCENTAGE },
+        borders: noBorders(),
+        rows: [new TableRow({
+          children: [
+            new TableCell({
+              width: { size: 12, type: WidthType.PERCENTAGE },
+              borders: noBorders(),
+              children: [new Paragraph({ children: [new TextRun({ text: num, bold: !!num, size: 20, font: 'Times New Roman', color: C.NAVY })], spacing: { before: 60, after: 60 } })]
+            }),
+            new TableCell({
+              width: { size: 75, type: WidthType.PERCENTAGE },
+              borders: { bottom: { style: BorderStyle.DOTTED, size: 2, color: C.GRAY_MED } },
+              children: [new Paragraph({ children: [new TextRun({ text: titre, bold: !!num, size: 20, font: 'Times New Roman', color: num ? C.NAVY : C.DARK })], spacing: { before: 60, after: 60 } })]
+            }),
+            new TableCell({
+              width: { size: 13, type: WidthType.PERCENTAGE },
+              borders: noBorders(),
+              children: [new Paragraph({ children: [new TextRun({ text: '[à rajouter par l\'expert]', size: 18, font: 'Times New Roman', color: C.AMBER })], alignment: AlignmentType.RIGHT, spacing: { before: 60, after: 60 } })]
+            })
+          ]
+        })]
+      })
+    ),
+  ];
+}
+
+function buildResumeSection(sections, formData) {
+  const fd = formData || {};
+  const rows = [
+    ['Référence dossier', fd.ref_dossier || '[à rajouter par l\'expert]'],
+    ['Nature de la mission', fd.type_mission || '[à rajouter par l\'expert]'],
+    ['Donneur d\'ordre', `${fd.nom_donneur_ordre || ''} — ${fd.donneur_ordre || ''}`.replace(/^ — | — $/, '') || '[à rajouter par l\'expert]'],
+    ['Adresse du bien', fd.adresse_bien || '[à rajouter par l\'expert]'],
+    ['Date de visite', fd.date_visite || '[à rajouter par l\'expert]'],
+    ['Type de bien', fd.type_bien || '[à rajouter par l\'expert]'],
+    ['Régime juridique', fd.regime_juridique || '[à rajouter par l\'expert]'],
+    ['Situation locative', fd.situation_locative || '[à rajouter par l\'expert]'],
+    ['Références cadastrales', fd.refs_cadastrales || '[à rajouter par l\'expert]'],
+    ['DPE / GES', `Classe ${fd.dpe_classe || 'NC'} / Classe ${fd.ges_classe || 'NC'}`],
+    ['Valeur vénale', '[à rajouter par l\'expert]'],
+  ];
+
+  return [
+    pageBreak(),
+    navyBanner('I — RÉSUMÉ'),
+    spacer(120),
+    bodyPara(sections.resume_mission || '[à rajouter par l\'expert]'),
+    spacer(150),
+    new Table({
+      width: { size: 100, type: WidthType.PERCENTAGE },
+      borders: noBorders(),
+      rows: rows.map(([label, val], i) =>
+        new TableRow({
+          children: [
+            shadedCell(i % 2 === 0 ? C.NAVY_L : C.GRAY, [
+              new Paragraph({ children: [new TextRun({ text: label, bold: true, size: 19, font: 'Times New Roman', color: C.NAVY })], spacing: { before: 50, after: 50 } })
+            ], { width: { size: 40, type: WidthType.PERCENTAGE } }),
+            shadedCell(i % 2 === 0 ? C.WHITE : C.WHITE, [
+              new Paragraph({ children: [new TextRun({ text: val, size: 19, font: 'Times New Roman', color: val.includes('[à rajouter') ? C.AMBER : C.DARK, bold: label === 'Valeur vénale' })], spacing: { before: 50, after: 50 } })
+            ], { width: { size: 60, type: WidthType.PERCENTAGE } })
+          ]
+        })
+      )
+    }),
+    spacer(200),
+    // Encadré valeur vénale vert (placeholder)
+    new Table({
+      width: { size: 60, type: WidthType.PERCENTAGE },
+      borders: noBorders(),
+      rows: [new TableRow({
+        children: [shadedCell(C.GREEN, [
+          new Paragraph({
+            alignment: AlignmentType.CENTER,
+            spacing: { before: 120, after: 60 },
+            children: [new TextRun({ text: 'VALEUR VÉNALE', bold: true, color: C.NAVY, size: 24, font: 'Times New Roman' })]
+          }),
+          new Paragraph({
+            alignment: AlignmentType.CENTER,
+            spacing: { before: 40, after: 120 },
+            children: [new TextRun({ text: '[à rajouter par l\'expert]', bold: true, color: C.NAVY, size: 22, font: 'Times New Roman' })]
+          })
+        ], { borders: noBorders() })]
+      })]
+    }),
+  ];
+}
+
+function buildExpertiseDetaillee() {
+  return [
+    pageBreak(),
+    navyBanner('II — EXPERTISE DÉTAILLÉE'),
+    spacer(120),
+    subBanner('Conditions et limites de la mission'),
+    spacer(80),
+    bodyPara('L\'expertise a été conduite conformément aux dispositions de la Charte de l\'Expertise Immobilière (5e édition) et du référentiel TEGOVA (6e édition). La présente expertise repose sur l\'examen visuel du bien lors de la visite, les documents fournis par le donneur d\'ordre, et les données de marché disponibles au jour de la mission.'),
+    bodyPara('Il est précisé que l\'expert n\'a pas réalisé de sondages destructifs ni de diagnostics techniques spécialisés. Les observations relatives aux éléments non accessibles sont formulées au conditionnel.'),
+    spacer(100),
+    subBanner('Pièces et documents consultés'),
+    spacer(80),
+    imagePlaceholder('[à rajouter par l\'expert] — Liste des pièces et documents consultés'),
+    spacer(100),
+    subBanner('Intervenants'),
+    spacer(80),
+    imagePlaceholder('[à rajouter par l\'expert] — Identité du ou des intervenants lors de la visite'),
+  ];
+}
+
+function buildSituationSection(sections) {
+  return [
+    pageBreak(),
+    navyBanner('III — SITUATION'),
+    spacer(120),
+    ...splitParagraphs(sections.situation || '[à rajouter par l\'expert]'),
+    spacer(100),
+    imagePlaceholder('[à rajouter par l\'expert] — Plan de situation / Carte de localisation'),
+    spacer(100),
+    imagePlaceholder('[à rajouter par l\'expert] — Plan cadastral'),
+  ];
+}
+
+function buildDescriptionSection(sections, formData) {
+  const fd = formData || {};
+  const surfacesArr = fd.surfaces_array || [];
+
+  // Calculer surfaces par catégorie pour pondération
+  const totalHab = surfacesArr.filter(s => !s.type?.toLowerCase().includes('garage') && !s.type?.toLowerCase().includes('cave') && !s.type?.toLowerCase().includes('cellier') && !s.type?.toLowerCase().includes('veranda'))
+    .reduce((sum, s) => sum + (parseFloat(s.m2) || 0), 0);
+  const totalAnnexes = surfacesArr.filter(s => s.type?.toLowerCase().includes('garage') || s.type?.toLowerCase().includes('cave') || s.type?.toLowerCase().includes('cellier') || s.type?.toLowerCase().includes('veranda'))
+    .reduce((sum, s) => sum + (parseFloat(s.m2) || 0), 0);
+
+  const surfaceRows = surfacesArr.length > 0
+    ? surfacesArr.map((s, i) =>
+        new TableRow({
+          children: [
+            new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: `${s.type || ''}${s.prec ? ' — ' + s.prec : ''}`, size: 19, font: 'Times New Roman' })], spacing: { before: 40, after: 40 } })], borders: cellBorder() }),
+            new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: s.niveau || '', size: 19, font: 'Times New Roman' })], spacing: { before: 40, after: 40 } })], borders: cellBorder() }),
+            new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: s.m2 ? `${s.m2} m²` : '[à compléter]', size: 19, font: 'Times New Roman' })], alignment: AlignmentType.RIGHT, spacing: { before: 40, after: 40 } })], borders: cellBorder() }),
+            new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: '1,00', size: 19, font: 'Times New Roman' })], alignment: AlignmentType.RIGHT, spacing: { before: 40, after: 40 } })], borders: cellBorder() }),
+            new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: s.m2 ? `${parseFloat(s.m2).toFixed(2)} m²` : '[à compléter]', size: 19, font: 'Times New Roman' })], alignment: AlignmentType.RIGHT, spacing: { before: 40, after: 40 } })], borders: cellBorder() }),
+          ]
+        })
+      )
+    : [new TableRow({
+        children: [new TableCell({ columnSpan: 5, children: [new Paragraph({ children: [new TextRun({ text: '[à rajouter par l\'expert] — Tableau des surfaces', size: 19, font: 'Times New Roman', color: C.AMBER })], alignment: AlignmentType.CENTER, spacing: { before: 80, after: 80 } })], borders: cellBorder() })]
+      })];
+
+  const surfaceTable = new Table({
+    width: { size: 100, type: WidthType.PERCENTAGE },
+    borders: noBorders(),
+    rows: [
+      // En-tête
+      new TableRow({
+        children: [
+          shadedCell(C.NAVY, [new Paragraph({ children: [new TextRun({ text: 'Désignation', bold: true, size: 19, font: 'Times New Roman', color: C.WHITE })], spacing: { before: 40, after: 40 } })], { width: { size: 35, type: WidthType.PERCENTAGE } }),
+          shadedCell(C.NAVY, [new Paragraph({ children: [new TextRun({ text: 'Niveau', bold: true, size: 19, font: 'Times New Roman', color: C.WHITE })], spacing: { before: 40, after: 40 } })], { width: { size: 20, type: WidthType.PERCENTAGE } }),
+          shadedCell(C.NAVY, [new Paragraph({ children: [new TextRun({ text: 'Surface', bold: true, size: 19, font: 'Times New Roman', color: C.WHITE })], alignment: AlignmentType.RIGHT, spacing: { before: 40, after: 40 } })], { width: { size: 15, type: WidthType.PERCENTAGE } }),
+          shadedCell(C.NAVY, [new Paragraph({ children: [new TextRun({ text: 'Coeff.', bold: true, size: 19, font: 'Times New Roman', color: C.WHITE })], alignment: AlignmentType.RIGHT, spacing: { before: 40, after: 40 } })], { width: { size: 15, type: WidthType.PERCENTAGE } }),
+          shadedCell(C.NAVY, [new Paragraph({ children: [new TextRun({ text: 'Surface pond.', bold: true, size: 19, font: 'Times New Roman', color: C.WHITE })], alignment: AlignmentType.RIGHT, spacing: { before: 40, after: 40 } })], { width: { size: 15, type: WidthType.PERCENTAGE } }),
+        ]
+      }),
+      ...surfaceRows,
+      // Ligne totale
+      new TableRow({
+        children: [
+          shadedCell(C.NAVY_L, [new Paragraph({ children: [new TextRun({ text: 'Surface habitable totale (Loi Boutin)', bold: true, size: 19, font: 'Times New Roman', color: C.NAVY })], spacing: { before: 60, after: 60 } })], { columnSpan: 3 }),
+          shadedCell(C.NAVY_L, [new Paragraph({ children: [new TextRun({ text: totalHab > 0 ? `${totalHab.toFixed(2)} m²` : '[à rajouter par l\'expert]', bold: true, size: 19, font: 'Times New Roman', color: C.NAVY })], alignment: AlignmentType.RIGHT, spacing: { before: 60, after: 60 } })], { columnSpan: 2 }),
+        ]
+      }),
+      new TableRow({
+        children: [
+          shadedCell(C.GRAY, [new Paragraph({ children: [new TextRun({ text: 'Surfaces annexes (garages, caves, vérandas...)', size: 19, font: 'Times New Roman' })], spacing: { before: 40, after: 40 } })], { columnSpan: 3 }),
+          shadedCell(C.GRAY, [new Paragraph({ children: [new TextRun({ text: totalAnnexes > 0 ? `${totalAnnexes.toFixed(2)} m²` : '[à rajouter par l\'expert]', size: 19, font: 'Times New Roman' })], alignment: AlignmentType.RIGHT, spacing: { before: 40, after: 40 } })], { columnSpan: 2 }),
+        ]
+      }),
+    ]
+  });
+
+  return [
+    pageBreak(),
+    navyBanner('IV — DESCRIPTION'),
+    spacer(120),
+    subBanner('Description du terrain'),
+    spacer(80),
+    ...splitParagraphs(sections.description_terrain || '[à rajouter par l\'expert]'),
+    spacer(100),
+    imagePlaceholder('[à rajouter par l\'expert] — Plan de masse / Plan du terrain'),
+    spacer(150),
+    subBanner('Description du bâti'),
+    spacer(80),
+    ...splitParagraphs(sections.description_bati || '[à rajouter par l\'expert]'),
+    spacer(150),
+    subBanner('Tableau des surfaces'),
+    spacer(80),
+    surfaceTable,
+    spacer(150),
+    subBanner('Désordres constatés'),
+    spacer(80),
+    ...splitParagraphs(sections.desordres_texte || 'Au jour de notre visite, aucun désordre significatif n\'a été constaté.'),
+  ];
+}
+
+function buildJugementSection(sections) {
+  const favorable = sections.jugement_favorable || [];
+  const defavorable = sections.jugement_defavorable || [];
+
+  const maxRows = Math.max(favorable.length, defavorable.length, 1);
+  const rows = [];
+  for (let i = 0; i < maxRows; i++) {
+    rows.push(new TableRow({
+      children: [
+        new TableCell({
+          shading: { fill: 'E8F5E9', type: ShadingType.CLEAR },
+          borders: cellBorder('92D050'),
+          margins: { top: 60, bottom: 60, left: 120, right: 120 },
+          children: [new Paragraph({
+            children: [new TextRun({ text: favorable[i] || '', size: 19, font: 'Times New Roman' })],
+            spacing: { before: 40, after: 40 }
+          })]
+        }),
+        new TableCell({
+          shading: { fill: 'FDECEA', type: ShadingType.CLEAR },
+          borders: cellBorder('E57373'),
+          margins: { top: 60, bottom: 60, left: 120, right: 120 },
+          children: [new Paragraph({
+            children: [new TextRun({ text: defavorable[i] || '', size: 19, font: 'Times New Roman' })],
+            spacing: { before: 40, after: 40 }
+          })]
+        }),
+      ]
+    }));
+  }
+
+  return [
+    pageBreak(),
+    navyBanner('V — ÉLÉMENTS DE JUGEMENT'),
+    spacer(120),
+    bodyPara(sections.elements_jugement_intro || 'L\'appréciation du bien objet de la présente expertise repose sur l\'analyse des éléments favorables et défavorables suivants :'),
+    spacer(100),
+    new Table({
+      width: { size: 100, type: WidthType.PERCENTAGE },
+      borders: noBorders(),
+      rows: [
+        new TableRow({
+          children: [
+            shadedCell('2E7D32', [new Paragraph({ children: [new TextRun({ text: 'ÉLÉMENTS FAVORABLES', bold: true, color: C.WHITE, size: 20, font: 'Times New Roman' })], alignment: AlignmentType.CENTER, spacing: { before: 60, after: 60 } })], { borders: noBorders() }),
+            shadedCell('C62828', [new Paragraph({ children: [new TextRun({ text: 'ÉLÉMENTS DÉFAVORABLES', bold: true, color: C.WHITE, size: 20, font: 'Times New Roman' })], alignment: AlignmentType.CENTER, spacing: { before: 60, after: 60 } })], { borders: noBorders() }),
+          ]
+        }),
+        ...rows
+      ]
+    }),
+  ];
+}
+
+function buildEvaluationSection(formData) {
+  return [
+    pageBreak(),
+    navyBanner('VI — ÉVALUATION'),
+    spacer(120),
+    subBanner('Méthode d\'évaluation'),
+    spacer(80),
+    bodyPara('L\'évaluation du bien objet de la présente expertise est réalisée par comparaison directe avec des références de marché récentes (méthode comparative). Les termes de comparaison ont été sélectionnés dans la même zone géographique, pour des biens de nature et caractéristiques similaires.'),
+    bodyPara('[à rajouter par l\'expert] — Développement de la méthode et des termes de comparaison retenus.'),
+    spacer(150),
+    subBanner('Références de marché'),
+    spacer(80),
+    imagePlaceholder('[à rajouter par l\'expert] — Tableau des termes de comparaison'),
+    spacer(150),
+    subBanner('Calcul de la valeur vénale'),
+    spacer(80),
+    imagePlaceholder('[à rajouter par l\'expert] — Tableau de calcul et justification de la valeur'),
+    spacer(200),
+    // Encadré valeur vénale
+    new Table({
+      width: { size: 70, type: WidthType.PERCENTAGE },
+      borders: noBorders(),
+      rows: [new TableRow({
+        children: [shadedCell(C.GREEN, [
+          new Paragraph({
+            alignment: AlignmentType.CENTER,
+            spacing: { before: 100, after: 40 },
+            children: [new TextRun({ text: 'VALEUR VÉNALE RETENUE', bold: true, color: C.NAVY, size: 22, font: 'Times New Roman' })]
+          }),
+          new Paragraph({
+            alignment: AlignmentType.CENTER,
+            spacing: { before: 40, after: 40 },
+            children: [new TextRun({ text: '[à rajouter par l\'expert]', bold: true, color: C.NAVY, size: 36, font: 'Times New Roman' })]
+          }),
+          new Paragraph({
+            alignment: AlignmentType.CENTER,
+            spacing: { before: 20, after: 100 },
+            children: [new TextRun({ text: 'Valeur en euros — hors honoraires — hors droits de mutation', color: C.NAVY, size: 18, font: 'Times New Roman', italics: true })]
+          })
+        ], { borders: noBorders() })]
+      })]
+    }),
+  ];
+}
+
+function buildConclusionSection(sections) {
+  return [
+    pageBreak(),
+    navyBanner('CONCLUSION'),
+    spacer(120),
+    ...splitParagraphs(sections.conclusion || '[à rajouter par l\'expert]'),
+    spacer(200),
+    // Signature
+    new Table({
+      width: { size: 50, type: WidthType.PERCENTAGE },
+      borders: noBorders(),
+      rows: [new TableRow({
+        children: [new TableCell({
+          borders: { top: { style: BorderStyle.SINGLE, size: 4, color: C.NAVY } },
+          margins: { top: 120, bottom: 40, left: 0, right: 0 },
+          children: [
+            new Paragraph({ children: [new TextRun({ text: 'L\'Expert signataire', bold: true, size: 20, font: 'Times New Roman', color: C.NAVY })], spacing: { before: 60, after: 40 } }),
+            new Paragraph({ children: [new TextRun({ text: '[à rajouter par l\'expert] — Nom, qualité, signature, cachet', size: 18, font: 'Times New Roman', color: C.AMBER })], spacing: { before: 40, after: 40 } }),
+          ]
+        })]
+      })]
+    }),
+  ];
+}
+
+function buildPhotosSection() {
+  const placeholders = [];
+  for (let i = 1; i <= 6; i++) {
+    placeholders.push(imagePlaceholder(`[à rajouter par l'expert] — Photo ${i}`));
+    placeholders.push(spacer(100));
+  }
+  return [
+    pageBreak(),
+    navyBanner('PHOTOGRAPHIES'),
+    spacer(120),
+    new Paragraph({
+      children: [new TextRun({ text: 'Les photographies ci-après ont été prises lors de la visite du bien par l\'expert. Elles illustrent les éléments descriptifs développés dans le présent rapport.', size: 19, font: 'Times New Roman', italics: true, color: C.DARK })],
+      alignment: AlignmentType.JUSTIFIED,
+      spacing: { before: 60, after: 120 }
+    }),
+    ...placeholders,
+  ];
+}
+
+function buildAnnexesSection() {
+  return [
+    pageBreak(),
+    navyBanner('ANNEXES'),
+    spacer(120),
+    imagePlaceholder('[à rajouter par l\'expert] — Titre de propriété'),
+    spacer(100),
+    imagePlaceholder('[à rajouter par l\'expert] — Extrait cadastral'),
+    spacer(100),
+    imagePlaceholder('[à rajouter par l\'expert] — Certificat d\'urbanisme'),
+    spacer(100),
+    imagePlaceholder('[à rajouter par l\'expert] — DPE et Diagnostics techniques'),
+    spacer(100),
+    imagePlaceholder('[à rajouter par l\'expert] — Tout autre document utile à l\'expertise'),
+  ];
+}
+
+function buildGlossaireSection() {
+  const termes = [
+    ['Valeur vénale', 'Prix auquel un bien pourrait être vendu dans des conditions normales de marché, entre un vendeur et un acquéreur consentants, disposant d\'une information complète et agissant librement.'],
+    ['Surface habitable (Loi Boutin)', 'Surface de plancher construite, après déduction des surfaces occupées par les murs, cloisons, marches et cages d\'escalier, gaines, embrasures de portes et fenêtres, parties de locaux d\'une hauteur inférieure à 1,80 m.'],
+    ['TEGOVA', 'The European Group of Valuers\' Associations — organisation européenne des associations d\'experts immobiliers. Le référentiel TEGOVA (6e édition) définit les standards européens de l\'expertise immobilière.'],
+    ['Charte de l\'Expertise', 'Charte de l\'Expertise en Évaluation Immobilière (5e édition) — document de référence français définissant les règles déontologiques et méthodologiques applicables aux experts immobiliers.'],
+    ['Coefficient de pondération', 'Coefficient appliqué à la surface brute d\'un espace selon sa nature et son usage, permettant de calculer une surface pondérée pour les besoins de l\'évaluation.'],
+    ['Terme de comparaison', 'Bien similaire vendu ou mis en vente récemment, retenu comme référence pour calibrer la valeur du bien expertisé par la méthode comparative.'],
+    ['Servitude', 'Charge imposée sur un immeuble (fonds servant) pour l\'utilité d\'un autre immeuble (fonds dominant) appartenant à un propriétaire différent (servitude de passage, de vue, etc.).'],
+    ['PLU', 'Plan Local d\'Urbanisme — document d\'urbanisme définissant les règles d\'utilisation des sols sur le territoire communal (zonage, coefficients d\'emprise, hauteurs, destinations autorisées).'],
+  ];
+
+  return [
+    pageBreak(),
+    navyBanner('GLOSSAIRE'),
+    spacer(120),
+    new Table({
+      width: { size: 100, type: WidthType.PERCENTAGE },
+      borders: noBorders(),
+      rows: termes.map(([terme, def], i) =>
+        new TableRow({
+          children: [
+            shadedCell(i % 2 === 0 ? C.NAVY_L : C.GRAY, [
+              new Paragraph({ children: [new TextRun({ text: terme, bold: true, size: 19, font: 'Times New Roman', color: C.NAVY })], spacing: { before: 60, after: 60 } })
+            ], { width: { size: 28, type: WidthType.PERCENTAGE } }),
+            shadedCell(C.WHITE, [
+              new Paragraph({ children: [new TextRun({ text: def, size: 18, font: 'Times New Roman', color: C.DARK })], spacing: { before: 60, after: 60 }, alignment: AlignmentType.JUSTIFIED })
+            ], { width: { size: 72, type: WidthType.PERCENTAGE } }),
+          ]
+        })
+      )
+    }),
+  ];
+}
+
+// Découpe un texte multiligne en paragraphes docx
+function splitParagraphs(text) {
+  if (!text) return [bodyPara('[à rajouter par l\'expert]')];
+  return text.split(/\n+/).filter(l => l.trim()).map(line => bodyPara(line));
+}
+
+async function generateJaltaDocx(sections, formData) {
+  const fd = formData || {};
+
+  const children = [
+    // Page de couverture
+    ...buildCoverPage(fd),
+    // Sommaire
+    ...buildSommaire(),
+    // I — Résumé
+    ...buildResumeSection(sections, fd),
+    // II — Expertise détaillée
+    ...buildExpertiseDetaillee(),
+    // III — Situation
+    ...buildSituationSection(sections),
+    // IV — Description (terrain + bâti + surfaces + désordres)
+    ...buildDescriptionSection(sections, fd),
+    // V — Éléments de jugement
+    ...buildJugementSection(sections),
+    // VI — Évaluation
+    ...buildEvaluationSection(fd),
+    // Conclusion
+    ...buildConclusionSection(sections),
+    // Photographies
+    ...buildPhotosSection(),
+    // Annexes
+    ...buildAnnexesSection(),
+    // Glossaire
+    ...buildGlossaireSection(),
+  ];
+
+  const doc = new Document({
+    creator: 'ExpertIA — Cabinet JALTA',
+    title: `Rapport d'expertise — ${fd.ref_dossier || 'Dossier'}`,
+    description: `Rapport d'expertise immobilière — ${fd.adresse_bien || ''}`,
+    sections: [{
+      properties: {
+        page: {
+          margin: { top: convertInchesToTwip(1), right: convertInchesToTwip(0.9), bottom: convertInchesToTwip(1), left: convertInchesToTwip(0.9) }
+        },
+        pageNumberStart: 1,
+        pageNumberFormatType: NumberFormat.DECIMAL,
+      },
+      headers: {
+        default: new Header({
+          children: [
+            new Table({
+              width: { size: 100, type: WidthType.PERCENTAGE },
+              borders: noBorders(),
+              rows: [new TableRow({
+                children: [
+                  new TableCell({
+                    borders: noBorders(),
+                    children: [new Paragraph({
+                      children: [new TextRun({ text: 'RAPPORT D\'EXPERTISE IMMOBILIÈRE — CONFIDENTIEL', size: 16, color: C.NAVY, font: 'Times New Roman' })],
+                      border: { bottom: { style: BorderStyle.SINGLE, size: 6, color: C.NAVY } }
+                    })]
+                  }),
+                  new TableCell({
+                    borders: noBorders(),
+                    children: [new Paragraph({
+                      children: [new TextRun({ text: fd.ref_dossier || '', size: 16, color: C.NAVY, font: 'Times New Roman', bold: true })],
+                      alignment: AlignmentType.RIGHT,
+                      border: { bottom: { style: BorderStyle.SINGLE, size: 6, color: C.NAVY } }
+                    })]
+                  })
+                ]
+              })]
+            })
+          ]
+        })
+      },
+      footers: {
+        default: new Footer({
+          children: [
+            new Paragraph({
+              alignment: AlignmentType.CENTER,
+              border: { top: { style: BorderStyle.SINGLE, size: 4, color: C.GRAY_MED } },
+              spacing: { before: 60 },
+              children: [
+                new TextRun({ text: 'Page ', size: 16, color: C.DARK, font: 'Times New Roman' }),
+                new TextRun({ children: [PageNumber.CURRENT], size: 16, color: C.DARK, font: 'Times New Roman' }),
+                new TextRun({ text: ' — Document confidentiel — ', size: 16, color: C.DARK, font: 'Times New Roman' }),
+                new TextRun({ text: fd.adresse_bien || '', size: 16, color: C.NAVY, font: 'Times New Roman', bold: true }),
+              ]
+            })
+          ]
+        })
+      },
+      children
+    }]
+  });
+
+  return Packer.toBuffer(doc);
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// GÉNÉRATION DOCX MARKDOWN (fallback)
 // ─────────────────────────────────────────────────────────────────────────────
 
 async function generateDocx(markdown) {
   const children = parseMarkdown(markdown);
   const doc = new Document({
     styles: {
-      paragraphStyles: [
-        {
-          id: 'expertTitle',
-          name: 'Expert Title',
-          basedOn: 'Normal',
-          run: { font: 'Times New Roman', size: 36, bold: true, color: '1a2f4e' },
-          paragraph: { spacing: { after: 200 }, alignment: AlignmentType.CENTER }
-        }
-      ]
+      paragraphStyles: [{
+        id: 'expertTitle',
+        name: 'Expert Title',
+        basedOn: 'Normal',
+        run: { font: 'Times New Roman', size: 36, bold: true, color: '1a2f4e' },
+        paragraph: { spacing: { after: 200 }, alignment: AlignmentType.CENTER }
+      }]
     },
     sections: [{
       properties: {
-        page: {
-          margin: { top: 1440, right: 1134, bottom: 1440, left: 1134 }
-        }
+        page: { margin: { top: 1440, right: 1134, bottom: 1440, left: 1134 } }
       },
       headers: {
         default: new Header({
-          children: [
-            new Paragraph({
-              children: [
-                new TextRun({ text: 'RAPPORT D\'EXPERTISE IMMOBILIÈRE — CONFIDENTIEL', size: 16, color: '6b6457' })
-              ],
-              border: { bottom: { style: BorderStyle.SINGLE, size: 6, color: '9a7c38' } }
-            })
-          ]
+          children: [new Paragraph({
+            children: [new TextRun({ text: 'RAPPORT D\'EXPERTISE IMMOBILIÈRE — CONFIDENTIEL', size: 16, color: '6b6457' })],
+            border: { bottom: { style: BorderStyle.SINGLE, size: 6, color: '9a7c38' } }
+          })]
         })
       },
       children
@@ -404,30 +1184,18 @@ function parseMarkdown(md) {
       const rows = tableBuffer
         .filter(r => !r.match(/^\|[-\s|]+\|$/))
         .map(r => r.split('|').filter((_, i, a) => i > 0 && i < a.length - 1).map(c => c.trim()));
-
       if (rows.length === 0) { tableBuffer = []; inTable = false; return; }
-
       const tableRows = rows.map((cells, ri) =>
         new TableRow({
           children: cells.map(cell =>
             new TableCell({
-              children: [new Paragraph({
-                children: [new TextRun({
-                  text: cell.replace(/\*\*/g, ''),
-                  bold: ri === 0 || cell.startsWith('**'),
-                  size: 18
-                })]
-              })],
+              children: [new Paragraph({ children: [new TextRun({ text: cell.replace(/\*\*/g, ''), bold: ri === 0 || cell.startsWith('**'), size: 18 })] })],
               shading: ri === 0 ? { fill: 'E8E4DC', type: ShadingType.CLEAR } : undefined
             })
           )
         })
       );
-
-      result.push(new Table({
-        rows: tableRows,
-        width: { size: 100, type: WidthType.PERCENTAGE }
-      }));
+      result.push(new Table({ rows: tableRows, width: { size: 100, type: WidthType.PERCENTAGE } }));
     } catch {}
     tableBuffer = [];
     inTable = false;
@@ -435,32 +1203,14 @@ function parseMarkdown(md) {
 
   for (const raw of lines) {
     const line = raw.trimEnd();
-
-    if (line.startsWith('|')) {
-      inTable = true;
-      tableBuffer.push(line);
-      continue;
-    }
-    if (inTable) { flushTable(); }
-
+    if (line.startsWith('|')) { inTable = true; tableBuffer.push(line); continue; }
+    if (inTable) flushTable();
     if (line.startsWith('# ')) {
-      result.push(new Paragraph({
-        text: line.slice(2).trim(),
-        heading: HeadingLevel.TITLE,
-        alignment: AlignmentType.CENTER,
-        run: { color: '1a2f4e' }
-      }));
+      result.push(new Paragraph({ text: line.slice(2).trim(), heading: HeadingLevel.TITLE, alignment: AlignmentType.CENTER }));
     } else if (line.startsWith('## ')) {
-      result.push(new Paragraph({
-        text: line.slice(3).trim(),
-        heading: HeadingLevel.HEADING_1,
-        run: { color: '1a2f4e' }
-      }));
+      result.push(new Paragraph({ text: line.slice(3).trim(), heading: HeadingLevel.HEADING_1 }));
     } else if (line.startsWith('### ')) {
-      result.push(new Paragraph({
-        text: line.slice(4).trim(),
-        heading: HeadingLevel.HEADING_2
-      }));
+      result.push(new Paragraph({ text: line.slice(4).trim(), heading: HeadingLevel.HEADING_2 }));
     } else if (line === '---') {
       result.push(new Paragraph({ text: '', spacing: { after: 120 } }));
     } else if (line.trim() === '') {
@@ -469,7 +1219,6 @@ function parseMarkdown(md) {
       result.push(new Paragraph({ children: parseInline(line), spacing: { after: 80, line: 276 } }));
     }
   }
-
   if (inTable) flushTable();
   return result;
 }
@@ -477,24 +1226,15 @@ function parseMarkdown(md) {
 function parseInline(text) {
   const runs = [];
   const pattern = /(\*\*[^*]+\*\*|\*[^*]+\*)/g;
-  let lastIndex = 0;
-  let match;
-
+  let lastIndex = 0, match;
   while ((match = pattern.exec(text)) !== null) {
-    if (match.index > lastIndex) {
-      runs.push(new TextRun({ text: text.slice(lastIndex, match.index), size: 22 }));
-    }
+    if (match.index > lastIndex) runs.push(new TextRun({ text: text.slice(lastIndex, match.index), size: 22 }));
     const inner = match[0];
-    if (inner.startsWith('**')) {
-      runs.push(new TextRun({ text: inner.slice(2, -2), bold: true, size: 22 }));
-    } else {
-      runs.push(new TextRun({ text: inner.slice(1, -1), italics: true, size: 22, color: '6b6457' }));
-    }
+    if (inner.startsWith('**')) runs.push(new TextRun({ text: inner.slice(2, -2), bold: true, size: 22 }));
+    else runs.push(new TextRun({ text: inner.slice(1, -1), italics: true, size: 22, color: '6b6457' }));
     lastIndex = match.index + match[0].length;
   }
-  if (lastIndex < text.length) {
-    runs.push(new TextRun({ text: text.slice(lastIndex), size: 22 }));
-  }
+  if (lastIndex < text.length) runs.push(new TextRun({ text: text.slice(lastIndex), size: 22 }));
   return runs.length ? runs : [new TextRun({ text, size: 22 })];
 }
 

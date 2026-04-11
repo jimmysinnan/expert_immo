@@ -17,6 +17,7 @@ const state = {
   style: null,
   photoResults: {},
   reportMarkdown: '',
+  sections: null,         // JSON sections JALTA pour export DOCX
   formData: {}
 };
 
@@ -204,6 +205,7 @@ function collectFormData() {
 
   // Surfaces
   let surfacesText = '';
+  const surfacesArray = [];
   for (let i = 1; i <= 15; i++) {
     const type = get(`surf_type_${i}`);
     const m2 = get(`surf_m2_${i}`);
@@ -211,6 +213,7 @@ function collectFormData() {
     const prec = get(`surf_prec_${i}`);
     const niv = get(`surf_niv_${i}`);
     surfacesText += `| ${type}${prec ? ' — ' + prec : ''} | ${niv} | ${m2} |\n`;
+    surfacesArray.push({ type, prec, niveau: niv, m2 });
   }
 
   return {
@@ -253,7 +256,10 @@ function collectFormData() {
     sols_interieurs: get('sols_interieurs'),
     notes_bati: get('notes_bati'),
     desordres: desordresText,
-    surfaces: surfacesText
+    surfaces: surfacesText,
+    surfaces_array: surfacesArray,
+    situation_locative: get('situation_locative'),
+    assainissement: get('assainissement'),
   };
 }
 
@@ -356,6 +362,7 @@ async function startGeneration() {
     };
     const r4 = await fetchJSON('/api/generate', payload);
     state.reportMarkdown = r4.report || '';
+    state.sections = r4.sections || null;
     updateDetail(4, 'Rapport rédigé ✓');
     setStep(4, 'done');
 
@@ -544,6 +551,8 @@ async function downloadDocx() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         report: state.reportMarkdown,
+        sections: state.sections,
+        formData: state.formData,
         refDossier: state.formData.ref_dossier || 'PreRapport'
       })
     });
