@@ -310,7 +310,7 @@ app.post('/api/extract-style', upload.single('document'), async (req, res) => {
     } else if (req.file.originalname.endsWith('.pdf') || req.file.mimetype === 'application/pdf') {
       const response = await client.messages.create({
         model: process.env.CLAUDE_MODEL || 'claude-sonnet-4-6',
-        max_tokens: 3000,
+        max_tokens: 2000,
         temperature: 0,
         messages: [{
           role: 'user',
