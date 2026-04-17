@@ -3,6 +3,54 @@
 // Logique frontend : navigation, formulaire, appels API, rendu rapport
 // ─────────────────────────────────────────────────────────────────────────────
 
+// ── CADASTRE AUTO ────────────────────────────────────────────────────────────
+async function fetchCadastre() {
+  const adresse = document.getElementById('adresse_bien').value.trim();
+  if (!adresse) return alert('Saisissez d\'abord l\'adresse du bien.');
+  const btn = document.getElementById('btn-cadastre');
+  btn.textContent = '⏳ Recherche…'; btn.disabled = true;
+  try {
+    // 1. Geocoder l'adresse → coords + code INSEE
+    const geo = await fetch(`https://api-adresse.data.gouv.fr/search/?q=${encodeURIComponent(adresse)}&limit=1`).then(r => r.json());
+    const feat = geo.features?.[0];
+    if (!feat) throw new Error('Adresse non reconnue par le géocodeur');
+    const [lon, lat] = feat.geometry.coordinates;
+
+    // 2. Récupérer les parcelles via apicarto IGN (France métro + DOM : 971/972/973/974/976)
+    const cadastre = await fetch(
+      `https://apicarto.ign.fr/api/cadastre/parcelle?lon=${lon}&lat=${lat}`
+    ).then(r => { if (!r.ok) throw new Error(`API cadastre : ${r.status}`); return r.json(); });
+
+    const parcels = cadastre.features ?? [];
+    if (!parcels.length) throw new Error('Aucune parcelle trouvée à cette adresse');
+
+    // 3. Formater les références : "AB 0042, AB 0043"
+    const refs = [...new Set(parcels.map(p => {
+      const { section, numero } = p.properties;
+      return `${section.trim()} ${String(numero).trim()}`;
+    }))].join(', ');
+
+    document.getElementById('refs_cadastrales').value = refs;
+  } catch (e) {
+    alert('Cadastre : ' + e.message);
+  } finally {
+    btn.textContent = '⊕ Cadastre'; btn.disabled = false;
+  }
+}
+
+// ── HELPER BASE64 ────────────────────────────────────────────────────────────
+function fileToBase64(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const base64 = reader.result.split(',')[1];
+      resolve({ data: base64, mimeType: file.type || 'image/jpeg', name: file.name });
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
 // ── STATE ────────────────────────────────────────────────────────────────────
 const state = {
   currentStep: 0,
@@ -13,6 +61,13 @@ const state = {
     int: null,
     desordres: []         // Array de File (multi-blocs désordres)
   },
+  photos64: {             // Photos converties en base64 pour l'export DOCX
+    terrain: [],
+    ext: [],
+    int: [],
+    desordres: []
+  },
+  logo: null,             // Logo extrait du DOCX de référence { data, mimeType }
   chapter1: '',
   style: null,
   photoResults: {},
@@ -297,7 +352,7 @@ async function startGeneration() {
       updateDetail(1, 'Recherche web non disponible — à compléter manuellement');
     }
 
-    // ── ÉTAPE 2 : Extraction style
+    // ── ÉTAPE 2 : Extraction style + logo
     setStep(2, 'active');
     if (state.refDoc) {
       updateDetail(2, `Analyse de ${state.refDoc.name}`);
@@ -307,9 +362,11 @@ async function startGeneration() {
         const r2 = await fetch('/api/extract-style', { method: 'POST', body: fd2 });
         const j2 = await r2.json();
         state.style = j2.style || null;
-        updateDetail(2, 'Style extrait ✓');
+        state.logo = j2.logo || null;
+        updateDetail(2, state.logo ? 'Style extrait + logo récupéré ✓' : 'Style extrait ✓');
       } catch (e) {
         state.style = null;
+        state.logo = null;
         updateDetail(2, 'Extraction style échouée — style générique utilisé');
       }
     } else {
@@ -318,7 +375,7 @@ async function startGeneration() {
     }
     setStep(2, 'done');
 
-    // ── ÉTAPE 3 : Analyse photos
+    // ── ÉTAPE 3 : Analyse photos + conversion base64
     setStep(3, 'active');
     const hasPhotos = state.photos.terrain || state.photos.ext || state.photos.int || state.photos.desordres.length;
     if (hasPhotos) {
@@ -331,6 +388,14 @@ async function startGeneration() {
         state.photos.desordres.forEach(f => fd3.append('desordres', f));
         const r3 = await fetch('/api/analyze-photos', { method: 'POST', body: fd3 });
         state.photoResults = await r3.json();
+
+        // Conversion des photos en base64 pour l'export DOCX
+        const p64 = state.photos64;
+        if (state.photos.terrain) p64.terrain = await Promise.all(Array.from(state.photos.terrain).map(fileToBase64));
+        if (state.photos.ext)     p64.ext     = await Promise.all(Array.from(state.photos.ext).map(fileToBase64));
+        if (state.photos.int)     p64.int     = await Promise.all(Array.from(state.photos.int).map(fileToBase64));
+        if (state.photos.desordres.length) p64.desordres = await Promise.all(state.photos.desordres.map(fileToBase64));
+
         const nbCats = Object.values(state.photoResults).filter(Boolean).length;
         updateDetail(3, `${nbCats} lot(s) de photos analysés ✓`);
       } catch (e) {
@@ -553,7 +618,9 @@ async function downloadDocx() {
         report: state.reportMarkdown,
         sections: state.sections,
         formData: state.formData,
-        refDossier: state.formData.ref_dossier || 'PreRapport'
+        refDossier: state.formData.ref_dossier || 'PreRapport',
+        photos64: state.photos64,
+        logo: state.logo
       })
     });
     if (!res.ok) throw new Error('Export échoué');
