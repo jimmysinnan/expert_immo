@@ -74,25 +74,27 @@ RÈGLES ABSOLUES :
 6. Retourner UNIQUEMENT le JSON valide demandé, sans aucun texte avant ni après`;
 
 function buildChapter1Prompt(adresse) {
-  return `Tu es un expert immobilier certifié. Rédige la section "SITUATION" d'un rapport d'expertise JALTA pour le bien situé à :
+  return `Tu es un expert immobilier certifié. Rédige la section "SITUATION GÉOGRAPHIQUE" d'un rapport d'expertise JALTA pour le bien situé à :
 
 ${adresse}
 
-Recherche et inclus les données suivantes (INSEE, DVF, PLU, transports) et rédige en 4 sous-parties :
+Rédige en 2 à 3 paragraphes dans le style sobre et factuel du Cabinet JALTA :
 
-**1. Présentation de la commune**
-[Commune, département, région, population INSEE, dynamisme économique, bassin d'emploi]
+**Paragraphe 1 — La commune**
+Situer la commune : département, caractère général (résidentiel, touristique, économique), dynamisme local — 3 à 4 lignes. Entrée type : "La commune de... est située dans le département de... Elle se caractérise par..."
 
-**2. Situation dans la commune**
-[Quartier ou secteur, caractère résidentiel/commercial/mixte, standing, proximité centre-ville]
+**Paragraphe 2 — Situation du bien dans la commune**
+Décrire l'environnement immédiat du bien : quartier ou secteur, tissu bâti (pavillonnaire, mixte...), standing, desserte de proximité — 3 à 4 lignes. Entrée type : "Le bien objet de la présente expertise est situé dans le secteur..."
 
-**3. Accessibilité et transports**
-[Axes routiers, transports en commun, temps trajets grandes villes]
+**Paragraphe 3 — Accessibilité (optionnel)**
+Axes routiers principaux, transports — 2 lignes maximum. Uniquement si l'information est pertinente et vérifiable.
 
-**4. Analyse du marché immobilier local**
-[Prix m² médian maison/appartement, évolution 12-24 mois, données DVF récentes]
-
-Style JALTA : "Le bien objet de la présente expertise est situé à...", "La commune de... est dotée de...", "Le secteur présente les caractéristiques suivantes...". Ton professionnel, 250 à 400 mots, indiquer la source et la date de chaque donnée chiffrée. Retourner uniquement le texte de la section.`;
+RÈGLES ABSOLUES :
+- Maximum 200 mots au total
+- Aucune donnée de prix, aucune statistique de marché, aucune référence DVF
+- Style impersonnel, troisième personne, indicatif présent
+- Si une donnée est inconnue, ne pas l'inventer — l'omettre
+- Retourner uniquement le texte, sans titres ni marqueurs markdown`;
 }
 
 function buildStylePrompt(docText) {
