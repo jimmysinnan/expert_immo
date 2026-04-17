@@ -3,11 +3,12 @@ const express = require('express');
 const multer  = require('multer');
 const Anthropic = require('@anthropic-ai/sdk');
 const mammoth  = require('mammoth');
+const JSZip   = require('jszip');
 const {
   Document, Packer, Paragraph, TextRun, HeadingLevel,
   Table, TableRow, TableCell, WidthType, AlignmentType,
   BorderStyle, Header, Footer, ShadingType, PageNumber,
-  NumberFormat, convertInchesToTwip
+  NumberFormat, convertInchesToTwip, ImageRun
 } = require('docx');
 
 // ── Validation clé API au démarrage ──────────────────────────────────────────
@@ -198,10 +199,15 @@ GÉNÈRE UN JSON avec exactement ces clés (UNIQUEMENT le JSON, sans markdown ni
 
 {
   "resume_mission": "Texte introductif de la mission en 2-3 phrases style JALTA : objet de la mission, référence, donneur d'ordre, date de visite.",
-  "situation": "Texte complet section SITUATION — intégrer la section géographique déjà rédigée telle quelle.",
-  "description_terrain": "Texte section DESCRIPTION DU TERRAIN — au moins 150 mots — style JALTA : 'Le terrain objet de la présente expertise...', surface, forme, accès, clôtures, réseaux, PLU, contraintes.",
-  "description_bati": "Texte section DESCRIPTION DU BÂTI (extérieur et intérieur) — au moins 200 mots — style JALTA : 'Il s'agit d'un bâtiment en dur...', structure, toiture, façades, menuiseries, intérieur, équipements, DPE.",
-  "desordres_texte": "Texte section DÉSORDRES — liste tous les désordres en style JALTA avec conditionnel — si aucun : 'Au jour de notre visite, aucun désordre significatif n'a été constaté.'",
+  "cadre_evaluation": "Texte du cadre de l'évaluation : normes TEGOVA et Charte appliquées, conditions et limites de la mission, absence de sondages destructifs, observations visuelles au conditionnel — 4 à 6 phrases.",
+  "objectif_evaluation": "Texte de l'objectif de l'évaluation : nature de la mission (vénale, locative, etc.), finalité (vente, garantie, fiscalité...) — 2 à 4 phrases style JALTA.",
+  "situation_geographique": "Texte complet SITUATION GÉOGRAPHIQUE — intégrer la section géographique déjà rédigée telle quelle.",
+  "situation_urbanistique": "Texte SITUATION URBANISTIQUE : zonage PLU, règles d'urbanisme, certificat d'urbanisme, servitudes d'utilité publique, assainissement — style JALTA 3 à 5 phrases.",
+  "situation_juridique": "Texte SITUATION JURIDIQUE : régime juridique du bien (pleine propriété, copropriété...), références cadastrales, superficie cadastrale, mentions hypothécaires si connues — 3 à 5 phrases.",
+  "situation_locative_text": "Texte SITUATION LOCATIVE : si libre d'occupation ou occupé, conditions de l'occupation, incidence sur la valeur — 2 à 4 phrases. Si libre : le préciser clairement.",
+  "description_terrain": "Texte section LE TERRAIN D'ASSIETTE — au moins 150 mots — style JALTA : 'Le terrain objet de la présente expertise...', surface, forme, accès, clôtures, réseaux, PLU, contraintes.",
+  "description_bati": "Texte section LA CONSTRUCTION (extérieur et intérieur) — au moins 200 mots — style JALTA : 'Il s'agit d'un bâtiment en dur...', structure, toiture, façades, menuiseries, intérieur, équipements, DPE.",
+  "desordres_texte": "Texte section ÉTAT DES LIEUX — liste tous les désordres en style JALTA avec conditionnel — si aucun : 'Au jour de notre visite, aucun désordre significatif n'a été constaté.'",
   "jugement_favorable": ["Point favorable 1", "Point favorable 2", "..."],
   "jugement_defavorable": ["Point défavorable 1", "Point défavorable 2", "..."],
   "elements_jugement_intro": "Phrase d'introduction des éléments de jugement style JALTA.",
@@ -394,37 +400,52 @@ function buildMarkdownFromSections(sections, formData) {
 
 ---
 
-## I — RÉSUMÉ DE LA MISSION
+## I/ RÉSUMÉ DE LA MISSION
 
 ${sections.resume_mission || '[à rajouter par l\'expert]'}
 
 ---
 
-## II — SITUATION GÉOGRAPHIQUE ET ENVIRONNEMENT
+## II/ EXPERTISE DÉTAILLÉE
 
-${sections.situation || '[à rajouter par l\'expert]'}
+### 1 CADRE DE L'ÉVALUATION
+${sections.cadre_evaluation || '[à rajouter par l\'expert]'}
+
+### 2 OBJECTIF DE L'ÉVALUATION
+${sections.objectif_evaluation || '[à rajouter par l\'expert]'}
 
 ---
 
-## III — DESCRIPTION DU TERRAIN
+## III/ SITUATION
 
+### 1 SITUATION GÉOGRAPHIQUE
+${sections.situation_geographique || '[à rajouter par l\'expert]'}
+
+### 2 SITUATION URBANISTIQUE
+${sections.situation_urbanistique || '[à rajouter par l\'expert]'}
+
+### 3 SITUATION JURIDIQUE
+${sections.situation_juridique || '[à rajouter par l\'expert]'}
+
+### 4 SITUATION LOCATIVE
+${sections.situation_locative_text || '[à rajouter par l\'expert]'}
+
+---
+
+## IV/ DESCRIPTION DU BIEN
+
+### LE TERRAIN D'ASSIETTE
 ${sections.description_terrain || '[à rajouter par l\'expert]'}
 
----
-
-## IV — DESCRIPTION DU BÂTI
-
+### LA CONSTRUCTION
 ${sections.description_bati || '[à rajouter par l\'expert]'}
 
----
-
-## V — DÉSORDRES CONSTATÉS
-
+### ÉTAT DES LIEUX
 ${sections.desordres_texte || '[à rajouter par l\'expert]'}
 
 ---
 
-## VI — ÉLÉMENTS DE JUGEMENT
+## V/ ÉLÉMENTS DE JUGEMENT
 
 ${sections.elements_jugement_intro || ''}
 
@@ -433,6 +454,12 @@ ${(sections.jugement_favorable || []).map(p => '- ' + p).join('\n') || '[à rajo
 
 **Éléments défavorables :**
 ${(sections.jugement_defavorable || []).map(p => '- ' + p).join('\n') || '[à rajouter par l\'expert]'}
+
+---
+
+## VI/ ÉVALUATION
+
+[à rajouter par l'expert]
 
 ---
 
@@ -624,12 +651,12 @@ function buildCoverRow(label, value) {
 
 function buildSommaire() {
   const entries = [
-    ['I', 'Résumé de la mission'],
-    ['II', 'Expertise détaillée'],
-    ['III', 'Situation géographique'],
-    ['IV', 'Description du bien'],
-    ['V', 'Éléments de jugement'],
-    ['VI', 'Évaluation'],
+    ['I/', 'Résumé de la mission'],
+    ['II/', 'Expertise détaillée'],
+    ['III/', 'Situation'],
+    ['IV/', 'Description du bien'],
+    ['V/', 'Éléments de jugement'],
+    ['VI/', 'Évaluation'],
     ['', 'Conclusion'],
     ['', 'Photographies'],
     ['', 'Annexes'],
@@ -671,94 +698,98 @@ function buildSommaire() {
 function buildResumeSection(sections, formData) {
   const fd = formData || {};
   const rows = [
-    ['Référence dossier', fd.ref_dossier || '[à rajouter par l\'expert]'],
-    ['Nature de la mission', fd.type_mission || '[à rajouter par l\'expert]'],
-    ['Donneur d\'ordre', `${fd.nom_donneur_ordre || ''} — ${fd.donneur_ordre || ''}`.replace(/^ — | — $/, '') || '[à rajouter par l\'expert]'],
-    ['Adresse du bien', fd.adresse_bien || '[à rajouter par l\'expert]'],
-    ['Date de visite', fd.date_visite || '[à rajouter par l\'expert]'],
-    ['Type de bien', fd.type_bien || '[à rajouter par l\'expert]'],
-    ['Régime juridique', fd.regime_juridique || '[à rajouter par l\'expert]'],
-    ['Situation locative', fd.situation_locative || '[à rajouter par l\'expert]'],
-    ['Références cadastrales', fd.refs_cadastrales || '[à rajouter par l\'expert]'],
-    ['DPE / GES', `Classe ${fd.dpe_classe || 'NC'} / Classe ${fd.ges_classe || 'NC'}`],
-    ['Valeur vénale', '[à rajouter par l\'expert]'],
+    ['REQUÉRANT', `${fd.nom_donneur_ordre || ''} — ${fd.donneur_ordre || ''}`.replace(/^ — | — $/, '') || '[à rajouter par l\'expert]'],
+    ['ADRESSE DU BIEN', fd.adresse_bien || '[à rajouter par l\'expert]'],
+    ['RÉFÉRENCE CADASTRALE', fd.refs_cadastrales || '[à rajouter par l\'expert]'],
+    ['TYPE D\'ACTIF', fd.type_bien || '[à rajouter par l\'expert]'],
+    ['DATE DE L\'ÉVALUATION', fd.date_visite || '[à rajouter par l\'expert]'],
+    ['ASSAINISSEMENT', fd.assainissement || '[à rajouter par l\'expert]'],
+    ['OBJECTIF DE L\'ÉVALUATION', fd.type_mission || '[à rajouter par l\'expert]'],
+    ['SITUATION URBANISTIQUE', fd.zonage_plu || '[à rajouter par l\'expert]'],
+    ['MÉTHODE D\'ÉVALUATION', 'Méthode par comparaison directe'],
+    ['VALEUR VÉNALE RETENUE', '[à rajouter par l\'expert]'],
   ];
 
   return [
     pageBreak(),
-    navyBanner('I — RÉSUMÉ'),
+    navyBanner('I/ RÉSUMÉ'),
     spacer(120),
     bodyPara(sections.resume_mission || '[à rajouter par l\'expert]'),
     spacer(150),
     new Table({
       width: { size: 100, type: WidthType.PERCENTAGE },
       borders: noBorders(),
-      rows: rows.map(([label, val], i) =>
-        new TableRow({
+      rows: rows.map(([label, val], i) => {
+        const isValeur = label === 'VALEUR VÉNALE RETENUE';
+        return new TableRow({
           children: [
-            shadedCell(i % 2 === 0 ? C.NAVY_L : C.GRAY, [
-              new Paragraph({ children: [new TextRun({ text: label, bold: true, size: 19, font: 'Times New Roman', color: C.NAVY })], spacing: { before: 50, after: 50 } })
+            shadedCell(isValeur ? C.GREEN : (i % 2 === 0 ? C.NAVY_L : C.GRAY), [
+              new Paragraph({ children: [new TextRun({ text: label, bold: true, size: 19, font: 'Times New Roman', color: isValeur ? C.NAVY : C.NAVY })], spacing: { before: 50, after: 50 } })
             ], { width: { size: 40, type: WidthType.PERCENTAGE } }),
-            shadedCell(i % 2 === 0 ? C.WHITE : C.WHITE, [
-              new Paragraph({ children: [new TextRun({ text: val, size: 19, font: 'Times New Roman', color: val.includes('[à rajouter') ? C.AMBER : C.DARK, bold: label === 'Valeur vénale' })], spacing: { before: 50, after: 50 } })
+            shadedCell(isValeur ? C.GREEN : C.WHITE, [
+              new Paragraph({ children: [new TextRun({ text: val, size: 19, font: 'Times New Roman', color: val.includes('[à rajouter') ? C.AMBER : (isValeur ? C.NAVY : C.DARK), bold: isValeur })], spacing: { before: 50, after: 50 } })
             ], { width: { size: 60, type: WidthType.PERCENTAGE } })
           ]
-        })
-      )
-    }),
-    spacer(200),
-    // Encadré valeur vénale vert (placeholder)
-    new Table({
-      width: { size: 60, type: WidthType.PERCENTAGE },
-      borders: noBorders(),
-      rows: [new TableRow({
-        children: [shadedCell(C.GREEN, [
-          new Paragraph({
-            alignment: AlignmentType.CENTER,
-            spacing: { before: 120, after: 60 },
-            children: [new TextRun({ text: 'VALEUR VÉNALE', bold: true, color: C.NAVY, size: 24, font: 'Times New Roman' })]
-          }),
-          new Paragraph({
-            alignment: AlignmentType.CENTER,
-            spacing: { before: 40, after: 120 },
-            children: [new TextRun({ text: '[à rajouter par l\'expert]', bold: true, color: C.NAVY, size: 22, font: 'Times New Roman' })]
-          })
-        ], { borders: noBorders() })]
-      })]
+        });
+      })
     }),
   ];
 }
 
-function buildExpertiseDetaillee() {
+function buildExpertiseDetaillee(sections, formData) {
+  const fd = formData || {};
+  const s = sections || {};
   return [
     pageBreak(),
-    navyBanner('II — EXPERTISE DÉTAILLÉE'),
+    navyBanner('II/ EXPERTISE DÉTAILLÉE'),
     spacer(120),
-    subBanner('Conditions et limites de la mission'),
+    subBanner('1   CADRE DE L\'ÉVALUATION'),
     spacer(80),
-    bodyPara('L\'expertise a été conduite conformément aux dispositions de la Charte de l\'Expertise Immobilière (5e édition) et du référentiel TEGOVA (6e édition). La présente expertise repose sur l\'examen visuel du bien lors de la visite, les documents fournis par le donneur d\'ordre, et les données de marché disponibles au jour de la mission.'),
-    bodyPara('Il est précisé que l\'expert n\'a pas réalisé de sondages destructifs ni de diagnostics techniques spécialisés. Les observations relatives aux éléments non accessibles sont formulées au conditionnel.'),
-    spacer(100),
-    subBanner('Pièces et documents consultés'),
+    ...splitParagraphs(s.cadre_evaluation || 'L\'expertise a été conduite conformément aux dispositions de la Charte de l\'Expertise Immobilière (5e édition) et du référentiel TEGOVA (6e édition). La présente expertise repose sur l\'examen visuel du bien lors de la visite, les documents fournis par le donneur d\'ordre, et les données de marché disponibles au jour de la mission. Il est précisé que l\'expert n\'a pas réalisé de sondages destructifs ni de diagnostics techniques spécialisés. Les observations relatives aux éléments non accessibles sont formulées au conditionnel.'),
+    spacer(120),
+    subBanner('2   OBJECTIF DE L\'ÉVALUATION'),
+    spacer(80),
+    ...splitParagraphs(s.objectif_evaluation || fd.type_mission || '[à rajouter par l\'expert]'),
+    spacer(120),
+    subBanner('3   DATE DE L\'ÉVALUATION'),
+    spacer(80),
+    bodyPara(`La présente évaluation a été réalisée à la date du ${fd.date_visite || '[à rajouter par l\'expert]'}.`),
+    spacer(120),
+    subBanner('4   VISITE ET DOCUMENTS MIS À DISPOSITION'),
     spacer(80),
     imagePlaceholder('[à rajouter par l\'expert] — Liste des pièces et documents consultés'),
-    spacer(100),
-    subBanner('Intervenants'),
+    spacer(120),
+    subBanner('5   CLAUSE DE CONFIDENTIALITÉ'),
     spacer(80),
-    imagePlaceholder('[à rajouter par l\'expert] — Identité du ou des intervenants lors de la visite'),
+    bodyPara('Le présent rapport est établi à la demande et à l\'usage exclusif du donneur d\'ordre. Il ne peut être communiqué à des tiers sans l\'accord écrit de l\'expert signataire. Toute reproduction partielle ou totale est interdite sans autorisation préalable.'),
   ];
 }
 
 function buildSituationSection(sections) {
+  const s = sections || {};
   return [
     pageBreak(),
-    navyBanner('III — SITUATION'),
+    navyBanner('III/ SITUATION'),
     spacer(120),
-    ...splitParagraphs(sections.situation || '[à rajouter par l\'expert]'),
+    subBanner('1   SITUATION GÉOGRAPHIQUE'),
+    spacer(80),
+    ...splitParagraphs(s.situation_geographique || '[à rajouter par l\'expert]'),
     spacer(100),
     imagePlaceholder('[à rajouter par l\'expert] — Plan de situation / Carte de localisation'),
+    spacer(150),
+    subBanner('2   SITUATION URBANISTIQUE'),
+    spacer(80),
+    ...splitParagraphs(s.situation_urbanistique || '[à rajouter par l\'expert]'),
+    spacer(150),
+    subBanner('3   SITUATION JURIDIQUE'),
+    spacer(80),
+    ...splitParagraphs(s.situation_juridique || '[à rajouter par l\'expert]'),
     spacer(100),
     imagePlaceholder('[à rajouter par l\'expert] — Plan cadastral'),
+    spacer(150),
+    subBanner('4   SITUATION LOCATIVE'),
+    spacer(80),
+    ...splitParagraphs(s.situation_locative_text || '[à rajouter par l\'expert]'),
   ];
 }
 
@@ -821,23 +852,23 @@ function buildDescriptionSection(sections, formData) {
 
   return [
     pageBreak(),
-    navyBanner('IV — DESCRIPTION'),
+    navyBanner('IV/ DESCRIPTION DU BIEN'),
     spacer(120),
-    subBanner('Description du terrain'),
+    subBanner('LE TERRAIN D\'ASSIETTE'),
     spacer(80),
     ...splitParagraphs(sections.description_terrain || '[à rajouter par l\'expert]'),
     spacer(100),
     imagePlaceholder('[à rajouter par l\'expert] — Plan de masse / Plan du terrain'),
     spacer(150),
-    subBanner('Description du bâti'),
+    subBanner('LA CONSTRUCTION'),
     spacer(80),
     ...splitParagraphs(sections.description_bati || '[à rajouter par l\'expert]'),
     spacer(150),
-    subBanner('Tableau des surfaces'),
+    subBanner('SURFACES'),
     spacer(80),
     surfaceTable,
     spacer(150),
-    subBanner('Désordres constatés'),
+    subBanner('ÉTAT DES LIEUX'),
     spacer(80),
     ...splitParagraphs(sections.desordres_texte || 'Au jour de notre visite, aucun désordre significatif n\'a été constaté.'),
   ];
@@ -853,8 +884,8 @@ function buildJugementSection(sections) {
     rows.push(new TableRow({
       children: [
         new TableCell({
-          shading: { fill: 'E8F5E9', type: ShadingType.CLEAR },
-          borders: cellBorder('92D050'),
+          shading: { fill: C.WHITE, type: ShadingType.CLEAR },
+          borders: cellBorder(C.GRAY_MED),
           margins: { top: 60, bottom: 60, left: 120, right: 120 },
           children: [new Paragraph({
             children: [new TextRun({ text: favorable[i] || '', size: 19, font: 'Times New Roman' })],
@@ -862,8 +893,8 @@ function buildJugementSection(sections) {
           })]
         }),
         new TableCell({
-          shading: { fill: 'FDECEA', type: ShadingType.CLEAR },
-          borders: cellBorder('E57373'),
+          shading: { fill: C.WHITE, type: ShadingType.CLEAR },
+          borders: cellBorder(C.GRAY_MED),
           margins: { top: 60, bottom: 60, left: 120, right: 120 },
           children: [new Paragraph({
             children: [new TextRun({ text: defavorable[i] || '', size: 19, font: 'Times New Roman' })],
@@ -876,7 +907,7 @@ function buildJugementSection(sections) {
 
   return [
     pageBreak(),
-    navyBanner('V — ÉLÉMENTS DE JUGEMENT'),
+    navyBanner('V/ ÉLÉMENTS DE JUGEMENT'),
     spacer(120),
     bodyPara(sections.elements_jugement_intro || 'L\'appréciation du bien objet de la présente expertise repose sur l\'analyse des éléments favorables et défavorables suivants :'),
     spacer(100),
@@ -886,8 +917,8 @@ function buildJugementSection(sections) {
       rows: [
         new TableRow({
           children: [
-            shadedCell('2E7D32', [new Paragraph({ children: [new TextRun({ text: 'ÉLÉMENTS FAVORABLES', bold: true, color: C.WHITE, size: 20, font: 'Times New Roman' })], alignment: AlignmentType.CENTER, spacing: { before: 60, after: 60 } })], { borders: noBorders() }),
-            shadedCell('C62828', [new Paragraph({ children: [new TextRun({ text: 'ÉLÉMENTS DÉFAVORABLES', bold: true, color: C.WHITE, size: 20, font: 'Times New Roman' })], alignment: AlignmentType.CENTER, spacing: { before: 60, after: 60 } })], { borders: noBorders() }),
+            shadedCell(C.NAVY, [new Paragraph({ children: [new TextRun({ text: 'FAVORABLE', bold: true, color: C.WHITE, size: 20, font: 'Times New Roman' })], alignment: AlignmentType.CENTER, spacing: { before: 60, after: 60 } })], { borders: noBorders() }),
+            shadedCell(C.NAVY, [new Paragraph({ children: [new TextRun({ text: 'DÉFAVORABLE', bold: true, color: C.WHITE, size: 20, font: 'Times New Roman' })], alignment: AlignmentType.CENTER, spacing: { before: 60, after: 60 } })], { borders: noBorders() }),
           ]
         }),
         ...rows
@@ -899,7 +930,7 @@ function buildJugementSection(sections) {
 function buildEvaluationSection(formData) {
   return [
     pageBreak(),
-    navyBanner('VI — ÉVALUATION'),
+    navyBanner('VI/ ÉVALUATION'),
     spacer(120),
     subBanner('Méthode d\'évaluation'),
     spacer(80),
@@ -1054,7 +1085,7 @@ async function generateJaltaDocx(sections, formData) {
     // I — Résumé
     ...buildResumeSection(sections, fd),
     // II — Expertise détaillée
-    ...buildExpertiseDetaillee(),
+    ...buildExpertiseDetaillee(sections, fd),
     // III — Situation
     ...buildSituationSection(sections),
     // IV — Description (terrain + bâti + surfaces + désordres)
