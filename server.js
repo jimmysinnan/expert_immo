@@ -269,15 +269,44 @@ app.post('/api/chapter1', async (req, res) => {
   }
 });
 
+// Extrait la première image (logo) d'un DOCX via JSZip
+async function extractLogoFromDocx(buffer) {
+  try {
+    const zip = await JSZip.loadAsync(buffer);
+    const mediaFiles = Object.keys(zip.files).filter(name =>
+      name.startsWith('word/media/') && /\.(png|jpg|jpeg|gif|webp)$/i.test(name)
+    );
+    if (!mediaFiles.length) return null;
+    const firstMedia = mediaFiles[0];
+    const imgBuffer = await zip.files[firstMedia].async('nodebuffer');
+    const ext = firstMedia.split('.').pop().toLowerCase();
+    const mimeMap = { png: 'image/png', jpg: 'image/jpeg', jpeg: 'image/jpeg', gif: 'image/gif', webp: 'image/webp' };
+    return {
+      data: imgBuffer.toString('base64'),
+      mimeType: mimeMap[ext] || 'image/png',
+      filename: firstMedia
+    };
+  } catch (e) {
+    console.warn('[extractLogo] Échec extraction logo:', e.message);
+    return null;
+  }
+}
+
 // POST /api/extract-style
 app.post('/api/extract-style', upload.single('document'), async (req, res) => {
   try {
-    if (!req.file) return res.json({ style: null });
+    if (!req.file) return res.json({ style: null, logo: null });
 
     let docText = '';
+    let logo = null;
+
     if (req.file.originalname.endsWith('.docx')) {
-      const result = await mammoth.extractRawText({ buffer: req.file.buffer });
-      docText = result.value.slice(0, 8000);
+      const [mammothResult, extractedLogo] = await Promise.all([
+        mammoth.extractRawText({ buffer: req.file.buffer }),
+        extractLogoFromDocx(req.file.buffer)
+      ]);
+      docText = mammothResult.value.slice(0, 8000);
+      logo = extractedLogo;
     } else if (req.file.originalname.endsWith('.pdf') || req.file.mimetype === 'application/pdf') {
       const response = await client.messages.create({
         model: process.env.CLAUDE_MODEL || 'claude-sonnet-4-6',
@@ -291,7 +320,7 @@ app.post('/api/extract-style', upload.single('document'), async (req, res) => {
           ]
         }]
       });
-      return res.json({ style: response.content[0].text });
+      return res.json({ style: response.content[0].text, logo: null });
     }
 
     const response = await client.messages.create({
@@ -301,7 +330,7 @@ app.post('/api/extract-style', upload.single('document'), async (req, res) => {
       messages: [{ role: 'user', content: buildStylePrompt(docText) }]
     });
 
-    res.json({ style: response.content[0].text });
+    res.json({ style: response.content[0].text, logo });
   } catch (err) {
     console.error('[extract-style]', err.message);
     res.status(500).json({ error: err.message });
