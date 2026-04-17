@@ -310,7 +310,7 @@ app.post('/api/extract-style', upload.single('document'), async (req, res) => {
     } else if (req.file.originalname.endsWith('.pdf') || req.file.mimetype === 'application/pdf') {
       const response = await client.messages.create({
         model: process.env.CLAUDE_MODEL || 'claude-sonnet-4-6',
-        max_tokens: 1500,
+        max_tokens: 3000,
         temperature: 0,
         messages: [{
           role: 'user',
@@ -414,11 +414,11 @@ app.post('/api/generate', async (req, res) => {
 // POST /api/export-docx
 app.post('/api/export-docx', async (req, res) => {
   try {
-    const { report, sections, formData, refDossier } = req.body;
+    const { report, sections, formData, refDossier, photos64, logo } = req.body;
     let buffer;
 
     if (sections && formData) {
-      buffer = await generateJaltaDocx(sections, formData);
+      buffer = await generateJaltaDocx(sections, formData, photos64 || {}, logo || null);
     } else {
       buffer = await generateDocx(report || '');
     }
@@ -625,10 +625,96 @@ function imagePlaceholder(label) {
   });
 }
 
-function buildCoverPage(formData) {
+// ── HELPERS IMAGES ───────────────────────────────────────────────────────────
+
+function buildImageRun(photo64, opts = {}) {
+  if (!photo64 || !photo64.data) return null;
+  try {
+    const buf = Buffer.from(photo64.data, 'base64');
+    const imgType = (photo64.mimeType || 'image/jpeg').replace('image/', '');
+    return new ImageRun({
+      data: buf,
+      transformation: { width: opts.width || 450, height: opts.height || 300 },
+      type: imgType === 'jpg' ? 'jpeg' : imgType,
+    });
+  } catch (e) {
+    console.warn('[buildImageRun] Erreur:', e.message);
+    return null;
+  }
+}
+
+function buildPhotoParagraphs(photos64Array, caption = '') {
+  if (!photos64Array || !photos64Array.length) return [];
+  const items = [];
+
+  for (let i = 0; i < photos64Array.length; i += 2) {
+    const left = buildImageRun(photos64Array[i], { width: 215, height: 160 });
+    const right = i + 1 < photos64Array.length
+      ? buildImageRun(photos64Array[i + 1], { width: 215, height: 160 })
+      : null;
+
+    if (!left) continue;
+
+    if (right) {
+      items.push(new Table({
+        width: { size: 100, type: WidthType.PERCENTAGE },
+        borders: noBorders(),
+        rows: [new TableRow({
+          children: [
+            new TableCell({
+              borders: noBorders(),
+              width: { size: 49, type: WidthType.PERCENTAGE },
+              margins: { top: 60, bottom: 60, right: 100, left: 0 },
+              children: [new Paragraph({ children: [left], alignment: AlignmentType.CENTER })]
+            }),
+            new TableCell({
+              borders: noBorders(),
+              width: { size: 49, type: WidthType.PERCENTAGE },
+              margins: { top: 60, bottom: 60, left: 100, right: 0 },
+              children: [new Paragraph({ children: [right], alignment: AlignmentType.CENTER })]
+            }),
+          ]
+        })]
+      }));
+    } else {
+      const solo = buildImageRun(photos64Array[i], { width: 450, height: 300 });
+      if (solo) items.push(new Paragraph({ children: [solo], alignment: AlignmentType.CENTER, spacing: { before: 60, after: 60 } }));
+    }
+    items.push(spacer(60));
+  }
+
+  if (caption && items.length) {
+    items.push(new Paragraph({
+      children: [new TextRun({ text: caption, size: 17, italics: true, color: C.DARK, font: 'Times New Roman' })],
+      alignment: AlignmentType.CENTER,
+      spacing: { before: 40, after: 120 }
+    }));
+  }
+
+  return items;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+
+function buildCoverPage(formData, logo) {
   const fd = formData || {};
   const items = [
     pageBreak(),
+  ];
+
+  // Logo du cabinet si disponible
+  if (logo && logo.data) {
+    const logoRun = buildImageRun(logo, { width: 180, height: 70 });
+    if (logoRun) {
+      items.push(new Paragraph({
+        children: [logoRun],
+        alignment: AlignmentType.LEFT,
+        spacing: { before: 100, after: 200 }
+      }));
+    }
+  }
+
+  items.push(
     // Bandeau titre principal
     new Table({
       width: { size: 100, type: WidthType.PERCENTAGE },
@@ -683,8 +769,8 @@ function buildCoverPage(formData) {
         text: 'Le présent rapport est établi à la demande et à l\'usage exclusif du donneur d\'ordre. Il ne peut être communiqué à des tiers sans l\'accord écrit de l\'expert signataire. Toute reproduction partielle ou totale est interdite. Ce document constitue un pré-rapport préparatoire — les valeurs vénales et conclusions définitives feront l\'objet d\'une validation complémentaire par l\'expert signataire conformément à la Charte de l\'Expertise Immobilière (5e édition) et au référentiel TEGOVA (6e édition).',
         size: 17, font: 'Times New Roman', color: C.DARK, italics: true
       })]
-    }),
-  ];
+    })
+  );
   return items;
 }
 
@@ -845,7 +931,7 @@ function buildSituationSection(sections) {
   ];
 }
 
-function buildDescriptionSection(sections, formData) {
+function buildDescriptionSection(sections, formData, p64 = {}) {
   const fd = formData || {};
   const surfacesArr = fd.surfaces_array || [];
 
@@ -910,11 +996,21 @@ function buildDescriptionSection(sections, formData) {
     spacer(80),
     ...splitParagraphs(sections.description_terrain || '[à rajouter par l\'expert]'),
     spacer(100),
-    imagePlaceholder('[à rajouter par l\'expert] — Plan de masse / Plan du terrain'),
+    ...(p64.terrain && p64.terrain.length
+      ? buildPhotoParagraphs(p64.terrain, 'Vues du terrain — photos prises lors de la visite')
+      : [imagePlaceholder('[à rajouter par l\'expert] — Photos du terrain / Plan de masse')]),
     spacer(150),
     subBanner('LA CONSTRUCTION'),
     spacer(80),
     ...splitParagraphs(sections.description_bati || '[à rajouter par l\'expert]'),
+    spacer(100),
+    ...(p64.ext && p64.ext.length
+      ? buildPhotoParagraphs(p64.ext, 'Vues extérieures')
+      : [imagePlaceholder('[à rajouter par l\'expert] — Photos extérieures')]),
+    spacer(80),
+    ...(p64.int && p64.int.length
+      ? buildPhotoParagraphs(p64.int, 'Vues intérieures')
+      : [imagePlaceholder('[à rajouter par l\'expert] — Photos intérieures')]),
     spacer(150),
     subBanner('SURFACES'),
     spacer(80),
@@ -923,6 +1019,9 @@ function buildDescriptionSection(sections, formData) {
     subBanner('ÉTAT DES LIEUX'),
     spacer(80),
     ...splitParagraphs(sections.desordres_texte || 'Au jour de notre visite, aucun désordre significatif n\'a été constaté.'),
+    ...(p64.desordres && p64.desordres.length
+      ? [spacer(80), ...buildPhotoParagraphs(p64.desordres, 'Désordres constatés lors de la visite')]
+      : []),
   ];
 }
 
@@ -1050,21 +1149,19 @@ function buildConclusionSection(sections) {
 }
 
 function buildPhotosSection() {
-  const placeholders = [];
-  for (let i = 1; i <= 6; i++) {
-    placeholders.push(imagePlaceholder(`[à rajouter par l'expert] — Photo ${i}`));
-    placeholders.push(spacer(100));
-  }
   return [
     pageBreak(),
-    navyBanner('PHOTOGRAPHIES'),
+    navyBanner('PHOTOGRAPHIES COMPLÉMENTAIRES'),
     spacer(120),
     new Paragraph({
-      children: [new TextRun({ text: 'Les photographies ci-après ont été prises lors de la visite du bien par l\'expert. Elles illustrent les éléments descriptifs développés dans le présent rapport.', size: 19, font: 'Times New Roman', italics: true, color: C.DARK })],
+      children: [new TextRun({
+        text: 'Les photographies illustrant chaque section descriptive sont intégrées directement dans les chapitres correspondants du présent rapport (terrain, construction, état des lieux).',
+        size: 19, font: 'Times New Roman', italics: true, color: C.DARK
+      })],
       alignment: AlignmentType.JUSTIFIED,
       spacing: { before: 60, after: 120 }
     }),
-    ...placeholders,
+    imagePlaceholder('[à rajouter par l\'expert] — Photographies complémentaires ou de contexte'),
   ];
 }
 
@@ -1126,12 +1223,13 @@ function splitParagraphs(text) {
   return text.split(/\n+/).filter(l => l.trim()).map(line => bodyPara(line));
 }
 
-async function generateJaltaDocx(sections, formData) {
+async function generateJaltaDocx(sections, formData, photos64 = {}, logo = null) {
   const fd = formData || {};
+  const p64 = photos64 || {};
 
   const children = [
-    // Page de couverture
-    ...buildCoverPage(fd),
+    // Page de couverture (avec logo si disponible)
+    ...buildCoverPage(fd, logo),
     // Sommaire
     ...buildSommaire(),
     // I — Résumé
@@ -1140,15 +1238,15 @@ async function generateJaltaDocx(sections, formData) {
     ...buildExpertiseDetaillee(sections, fd),
     // III — Situation
     ...buildSituationSection(sections),
-    // IV — Description (terrain + bâti + surfaces + désordres)
-    ...buildDescriptionSection(sections, fd),
+    // IV — Description (terrain + bâti + surfaces + désordres + photos intégrées)
+    ...buildDescriptionSection(sections, fd, p64),
     // V — Éléments de jugement
     ...buildJugementSection(sections),
     // VI — Évaluation
     ...buildEvaluationSection(fd),
     // Conclusion
     ...buildConclusionSection(sections),
-    // Photographies
+    // Photographies complémentaires
     ...buildPhotosSection(),
     // Annexes
     ...buildAnnexesSection(),
@@ -1176,8 +1274,21 @@ async function generateJaltaDocx(sections, formData) {
               borders: noBorders(),
               rows: [new TableRow({
                 children: [
+                  // Logo du cabinet (si disponible)
+                  ...(logo && logo.data ? [new TableCell({
+                    borders: noBorders(),
+                    width: { size: 15, type: WidthType.PERCENTAGE },
+                    margins: { top: 0, bottom: 0, left: 0, right: 100 },
+                    children: (() => {
+                      const logoRun = buildImageRun(logo, { width: 100, height: 38 });
+                      return logoRun
+                        ? [new Paragraph({ children: [logoRun], alignment: AlignmentType.LEFT })]
+                        : [new Paragraph({ children: [] })];
+                    })()
+                  })] : []),
                   new TableCell({
                     borders: noBorders(),
+                    width: { size: logo && logo.data ? 60 : 75, type: WidthType.PERCENTAGE },
                     children: [new Paragraph({
                       children: [new TextRun({ text: 'RAPPORT D\'EXPERTISE IMMOBILIÈRE — CONFIDENTIEL', size: 16, color: C.NAVY, font: 'Times New Roman' })],
                       border: { bottom: { style: BorderStyle.SINGLE, size: 6, color: C.NAVY } }
@@ -1185,6 +1296,7 @@ async function generateJaltaDocx(sections, formData) {
                   }),
                   new TableCell({
                     borders: noBorders(),
+                    width: { size: 25, type: WidthType.PERCENTAGE },
                     children: [new Paragraph({
                       children: [new TextRun({ text: fd.ref_dossier || '', size: 16, color: C.NAVY, font: 'Times New Roman', bold: true })],
                       alignment: AlignmentType.RIGHT,
