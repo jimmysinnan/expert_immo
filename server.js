@@ -98,16 +98,19 @@ RÈGLES ABSOLUES :
 }
 
 function buildStylePrompt(docText) {
-  return `Analyse ce rapport d'expertise immobilière de référence et extrais UNIQUEMENT les éléments stylistiques en JSON :
+  return `Analyse ce rapport d'expertise immobilière de référence et extrais en JSON :
 {
-  "ton_general": "description du niveau de langue",
-  "formules_introduction": ["liste des formules récurrentes d'introduction"],
+  "ton_general": "description du niveau de langue (ex: professionnel, technique, sobre)",
+  "formules_introduction": ["liste des formules récurrentes d'introduction de section"],
   "formules_conclusion": ["formules de conclusion"],
-  "style_terrain": "extrait de 2-3 phrases caractéristiques du chapitre terrain",
-  "style_bati": "extrait de 2-3 phrases caractéristiques du chapitre bâti",
-  "style_desordres": "comment les désordres sont présentés",
-  "formules_conditionnelles": ["formules utilisées pour observations visuelles"],
-  "vocabulaire_technique": ["termes techniques caractéristiques"]
+  "formules_conditionnelles": ["formules utilisées pour observations visuelles : 'à l'examen visuel', 'semble présenter', etc."],
+  "vocabulaire_technique": ["termes techniques caractéristiques du rapport"],
+  "exemple_situation_geographique": "Copier mot-pour-mot 3 à 5 phrases caractéristiques de la section situation géographique ou localisation du rapport. Si absente : null.",
+  "exemple_situation_urbanistique": "Copier mot-pour-mot 2 à 4 phrases de la section urbanistique ou PLU. Si absente : null.",
+  "exemple_situation_juridique": "Copier mot-pour-mot 2 à 4 phrases de la section juridique ou cadastrale. Si absente : null.",
+  "exemple_description_terrain": "Copier mot-pour-mot 4 à 6 phrases caractéristiques du chapitre terrain. Si absente : null.",
+  "exemple_description_bati": "Copier mot-pour-mot 4 à 6 phrases caractéristiques du chapitre bâti ou construction. Si absente : null.",
+  "style_desordres": "Copier mot-pour-mot 2 à 3 phrases sur la manière dont les désordres sont présentés. Si absente : null."
 }
 Retourner UNIQUEMENT le JSON valide, sans texte avant ni après.
 
@@ -141,8 +144,26 @@ function buildMainPrompt(data) {
     ? surfacesArr.map(s => `${s.type}${s.prec ? ' — ' + s.prec : ''} | ${s.niveau} | ${s.m2} m²`).join('\n')
     : (surfaces || '[à rajouter par l\'expert]');
 
+  // Parser le style extrait (JSON string → objet) pour les exemples de contenu
+  let styleObj = null;
+  if (style) {
+    try { styleObj = JSON.parse(style); } catch(e) { styleObj = null; }
+  }
+
+  // Bloc d'exemples de contenu issus du rapport de référence
+  const exemples = styleObj ? `
+=== EXEMPLES DE CONTENU À REPRODUIRE (extraits mot-pour-mot du rapport de référence) ===
+${styleObj.exemple_situation_geographique ? `SITUATION GÉOGRAPHIQUE — reproduire ce style :\n"${styleObj.exemple_situation_geographique}"` : ''}
+${styleObj.exemple_situation_urbanistique ? `SITUATION URBANISTIQUE — reproduire ce style :\n"${styleObj.exemple_situation_urbanistique}"` : ''}
+${styleObj.exemple_situation_juridique ? `SITUATION JURIDIQUE — reproduire ce style :\n"${styleObj.exemple_situation_juridique}"` : ''}
+${styleObj.exemple_description_terrain ? `TERRAIN — reproduire ce style :\n"${styleObj.exemple_description_terrain}"` : ''}
+${styleObj.exemple_description_bati ? `CONSTRUCTION — reproduire ce style :\n"${styleObj.exemple_description_bati}"` : ''}
+${styleObj.style_desordres ? `DÉSORDRES — reproduire ce style :\n"${styleObj.style_desordres}"` : ''}
+` : '';
+
   return `=== STYLE DE L'EXPERT (reproduire exactement) ===
-${style || 'Style JALTA professionnel — français technique immobilier Antilles — TEGOVA 6e édition.'}
+${style ? (styleObj ? `Ton : ${styleObj.ton_general || 'professionnel'}\nFormules d'introduction : ${(styleObj.formules_introduction || []).slice(0,3).join(' / ')}\nVocabulaire clé : ${(styleObj.vocabulaire_technique || []).slice(0,5).join(', ')}` : style) : 'Style JALTA professionnel — français technique immobilier Antilles — TEGOVA 6e édition.'}
+${exemples}
 
 === DONNÉES DU DOSSIER ===
 Référence : ${formData.ref_dossier}
