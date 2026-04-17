@@ -170,7 +170,10 @@
             <label>Références cadastrales</label>
             <button class="tip-btn" data-tip="Trouvez ces informations sur le titre de propriété ou sur cadastre.gouv.fr. Format : Section + numéro de parcelle (ex : AB 0042). Indispensable pour l'identification légale du bien.">?</button>
           </div>
-          <input type="text" id="refs_cadastrales" placeholder="Section AB n° 0042">
+          <div style="display:flex;gap:8px;align-items:center">
+            <input type="text" id="refs_cadastrales" placeholder="Section AB n° 0042" style="flex:1">
+            <button class="btn btn-navy btn-sm" id="btn-cadastre" onclick="fetchCadastre()" title="Récupérer automatiquement depuis l'adresse du bien">⊕ Cadastre</button>
+          </div>
         </div>
         <div class="grid2" style="grid-column:span 1">
           <div class="field">
