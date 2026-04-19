@@ -74,27 +74,31 @@ RÈGLES ABSOLUES :
 6. Retourner UNIQUEMENT le JSON valide demandé, sans aucun texte avant ni après`;
 
 function buildChapter1Prompt(adresse) {
-  return `Tu es un expert immobilier certifié. Rédige la section "SITUATION GÉOGRAPHIQUE" d'un rapport d'expertise JALTA pour le bien situé à :
+  return `Tu es un expert immobilier certifié JALTA en Martinique. Rédige deux sections distinctes pour un rapport d'expertise du bien situé à :
 
 ${adresse}
 
-Rédige en 2 à 3 paragraphes dans le style sobre et factuel du Cabinet JALTA :
+---
+SECTION 1 — SITUATION GÉOGRAPHIQUE (clé JSON : "situation_geographique")
+Rédige 2 à 3 paragraphes sobres et factuels :
 
-**Paragraphe 1 — La commune**
-Situer la commune : département, caractère général (résidentiel, touristique, économique), dynamisme local — 3 à 4 lignes. Entrée type : "La commune de... est située dans le département de... Elle se caractérise par..."
+Paragraphe 1 — La commune : situer dans la Martinique (Collectivité Territoriale de Martinique — CTM — depuis 2015, île française des Antilles). Mentionner le rang de la commune par population si connu (avec chiffre approximatif), sa situation géographique dans l'île (nord/sud/est/ouest, distance de Fort-de-France), son caractère général. Ne jamais écrire "département" ni "collectivité d'outre-mer régie par l'article 73".
 
-**Paragraphe 2 — Situation du bien dans la commune**
-Décrire l'environnement immédiat du bien : quartier ou secteur, tissu bâti (pavillonnaire, mixte...), standing, desserte de proximité — 3 à 4 lignes. Entrée type : "Le bien objet de la présente expertise est situé dans le secteur..."
+Paragraphe 2 — Localisation du bien : quartier ou secteur, tissu bâti, desserte de proximité (commerces, services). Aucune référence à des routes spécifiques si l'information n'est pas certaine.
 
-**Paragraphe 3 — Accessibilité (optionnel)**
-Axes routiers principaux, transports — 2 lignes maximum. Uniquement si l'information est pertinente et vérifiable.
+Paragraphe 3 — Accessibilité (seulement si certaine) : axes routiers connus, 2 lignes max. Si incertain, omettre.
+
+SECTION 2 — ENVIRONNEMENT ÉCONOMIQUE (clé JSON : "marche_immobilier")
+Rédige une analyse du marché immobilier local de la commune et du secteur concerné.
+- Maximum 8 lignes
+- UNIQUEMENT descriptif — aucun chiffre, aucun prix au m²
+- Style factuel : tendances de la demande, profil des acquéreurs, attractivité du secteur, dynamiques récentes
+- Entrée type : "Le marché immobilier de la commune de... se caractérise par..."
 
 RÈGLES ABSOLUES :
-- Maximum 200 mots au total
-- Aucune donnée de prix, aucune statistique de marché, aucune référence DVF
 - Style impersonnel, troisième personne, indicatif présent
-- Si une donnée est inconnue, ne pas l'inventer — l'omettre
-- Retourner uniquement le texte, sans titres ni marqueurs markdown`;
+- Si une donnée est inconnue, l'omettre — ne jamais inventer
+- Retourner UNIQUEMENT un JSON valide avec deux clés : {"situation_geographique": "...", "marche_immobilier": "..."}`;
 }
 
 function buildStylePrompt(docText) {
@@ -221,16 +225,16 @@ ${chapter1}
 GÉNÈRE UN JSON avec exactement ces clés (UNIQUEMENT le JSON, sans markdown ni texte avant/après) :
 
 {
-  "resume_mission": "Texte introductif de la mission en 2-3 phrases style JALTA : objet de la mission, référence, donneur d'ordre, date de visite.",
-  "cadre_evaluation": "Texte du cadre de l'évaluation : normes TEGOVA et Charte appliquées, conditions et limites de la mission, absence de sondages destructifs, observations visuelles au conditionnel — 4 à 6 phrases.",
-  "objectif_evaluation": "Texte de l'objectif de l'évaluation : nature de la mission (vénale, locative, etc.), finalité (vente, garantie, fiscalité...) — 2 à 4 phrases style JALTA.",
+  "resume_mission": "UNE SEULE phrase courte de synthèse (max 20 mots) rappelant l'objet et la localisation du bien — sans 'À la requête de', sans répéter les données du tableau.",
+  "cadre_evaluation": "Commencer OBLIGATOIREMENT par le paragraphe de mission rédigé ainsi : 'À la requête de [nom donneur ordre], Nous, CABINET JALTA, avons reçu mission de déterminer la Valeur Vénale de [type et usage du bien], situé [adresse], référencé sous le dossier [réf dossier]. Après avoir visité les lieux le [date visite], en présence de notre mandant(e), relevé leur état, recueilli les renseignements nécessaires, nous avons établi le présent rapport.' Puis enchaîner avec le cadre normatif : normes TEGOVA et Charte appliquées, conditions et limites de la mission, absence de sondages destructifs, observations visuelles au conditionnel — 5 à 7 phrases au total. NE PAS mentionner le PPR. NE PAS inclure de définition de la valeur vénale.",
+  "objectif_evaluation": "Texte de l'objectif de l'évaluation : nature de la mission (vénale, locative, etc.), finalité (vente, garantie, fiscalité...) — 2 à 4 phrases style JALTA. NE PAS inclure la définition 'soit le prix auquel ce bien pourrait raisonnablement être cédé...' — cette définition figure au glossaire.",
   "situation_geographique": "Texte complet SITUATION GÉOGRAPHIQUE — intégrer la section géographique déjà rédigée telle quelle.",
-  "situation_urbanistique": "Texte SITUATION URBANISTIQUE — INTÉGRER OBLIGATOIREMENT le zonage PLU '${formData.zonage_plu || '[zonage non renseigné]'}' dans la première phrase. Exemple d'ouverture : 'Au regard du Plan Local d'Urbanisme en vigueur, le bien est classé en zone ${formData.zonage_plu || '[à compléter]'}...'. Décrire les règles d'urbanisme applicables à cette zone, les possibilités de construction, l'assainissement (${formData.assainissement || '[à compléter]'}), les servitudes connues — 3 à 5 phrases style JALTA.",
+  "situation_urbanistique": "Texte SITUATION URBANISTIQUE — INTÉGRER OBLIGATOIREMENT le zonage PLU '${formData.zonage_plu || '[zonage non renseigné]'}' dans la première phrase. Exemple : 'Au regard du Plan Local d\\'Urbanisme en vigueur, le bien est classé en zone ${formData.zonage_plu || '[à compléter]'}...'. Décrire les règles d\\'urbanisme applicables (destination, COS, hauteur, prospect). NE PAS mentionner l\\'assainissement ni les servitudes ici — ces éléments figurent dans la description du terrain — 2 à 3 phrases style JALTA.",
   "situation_juridique": "Texte SITUATION JURIDIQUE — INTÉGRER OBLIGATOIREMENT la référence cadastrale '${formData.refs_cadastrales || '[référence à compléter]'}' dans le texte. Exemple d'ouverture : 'Le bien est cadastré sous la référence ${formData.refs_cadastrales || '[à compléter]'}...'. Mentionner le régime juridique (${formData.regime_juridique || '[à compléter]'}), la superficie du terrain (${formData.superficie_terrain || '[à compléter]'} m²), les mentions hypothécaires si connues — 3 à 5 phrases style JALTA.",
   "situation_locative_text": "Texte SITUATION LOCATIVE : si libre d'occupation ou occupé, conditions de l'occupation, incidence sur la valeur — 2 à 4 phrases. Si libre : le préciser clairement.",
-  "description_terrain": "Texte section LE TERRAIN D'ASSIETTE — au moins 150 mots — style JALTA : 'Le terrain objet de la présente expertise...', surface, forme, accès, clôtures, réseaux, PLU, contraintes.",
-  "description_bati": "Texte section LA CONSTRUCTION (extérieur et intérieur) — au moins 200 mots — style JALTA : 'Il s'agit d'un bâtiment en dur...', structure, toiture, façades, menuiseries, intérieur, équipements, DPE.",
-  "desordres_texte": "Texte section ÉTAT DES LIEUX — liste tous les désordres en style JALTA avec conditionnel — si aucun : 'Au jour de notre visite, aucun désordre significatif n'a été constaté.'",
+  "description_terrain": "Texte section LE TERRAIN D\\'ASSIETTE — au moins 150 mots — style JALTA factuel. Inclure OBLIGATOIREMENT : surface (${formData.superficie_terrain || '[à compléter]'} m²), forme (${formData.forme_terrain || '[à compléter]'}), topographie, accès, clôtures, réseaux, zonage PLU (${formData.zonage_plu || '[à compléter]'}). Inclure OBLIGATOIREMENT la phrase sur l\\'assainissement : 'L\\'assainissement du bien est assuré par ${formData.assainissement || '[à compléter]'}.' Si servitude : mentionner. NE PAS mentionner le PPR. NE PAS écrire 'à l\\'examen visuel des photographies'.",
+  "description_bati": "Texte section LA CONSTRUCTION — au moins 200 mots — style JALTA : 'Il s'agit d'un bâtiment en dur...', structure, toiture, façades, menuiseries, équipements (électricité, plomberie, chauffage), DPE. NE PAS mentionner les surfaces des pièces dans ce texte — elles figurent dans le tableau. NE PAS écrire 'à l'examen visuel des photographies'. Décrire uniquement la distribution fonctionnelle (nombre de niveaux, pièces principales) sans détailler les m².",
+  "desordres_texte": "Texte section ÉTAT DES LIEUX — liste tous les désordres constatés en style JALTA avec conditionnel. NE PAS écrire 'à l'examen visuel des photographies' — formuler directement les observations. Si aucun désordre : 'Au jour de notre visite, aucun désordre significatif n'a été constaté.'",
   "jugement_favorable": ["Point favorable 1", "Point favorable 2", "..."],
   "jugement_defavorable": ["Point défavorable 1", "Point défavorable 2", "..."],
   "elements_jugement_intro": "Phrase d'introduction des éléments de jugement style JALTA.",
@@ -256,13 +260,22 @@ app.post('/api/chapter1', async (req, res) => {
       messages: [{ role: 'user', content: buildChapter1Prompt(adresse) }]
     });
 
-    const text = response.content
+    const raw = response.content
       .filter(b => b.type === 'text')
       .map(b => b.text)
       .join('\n')
       .trim();
 
-    res.json({ text });
+    // Le prompt retourne maintenant un JSON avec situation_geographique + marche_immobilier
+    let situation_geographique = raw;
+    let marche_immobilier = '';
+    try {
+      const parsed = JSON.parse(raw.replace(/^```json\n?/, '').replace(/\n?```$/, ''));
+      situation_geographique = parsed.situation_geographique || raw;
+      marche_immobilier = parsed.marche_immobilier || '';
+    } catch (e) { /* ancien format texte brut — garder tel quel */ }
+
+    res.json({ text: situation_geographique, marche_immobilier });
   } catch (err) {
     console.error('[chapter1]', err.message);
     res.status(500).json({ error: err.message });
@@ -414,11 +427,11 @@ app.post('/api/generate', async (req, res) => {
 // POST /api/export-docx
 app.post('/api/export-docx', async (req, res) => {
   try {
-    const { report, sections, formData, refDossier, photos64, logo } = req.body;
+    const { report, sections, formData, refDossier, photos64, logo, photoResults } = req.body;
     let buffer;
 
     if (sections && formData) {
-      buffer = await generateJaltaDocx(sections, formData, photos64 || {}, logo || null);
+      buffer = await generateJaltaDocx(sections, formData, photos64 || {}, logo || null, photoResults || {});
     } else {
       buffer = await generateDocx(report || '');
     }
@@ -440,15 +453,12 @@ app.post('/api/export-docx', async (req, res) => {
 function buildMarkdownFromSections(sections, formData) {
   const fd = formData || {};
   return `# RAPPORT D'EXPERTISE IMMOBILIÈRE
-## Pré-rapport soumis à validation
 
 **Référence dossier :** ${fd.ref_dossier || '[à rajouter par l\'expert]'}
-**Date de visite :** ${fd.date_visite || '[à rajouter par l\'expert]'}
+**Date de visite :** ${formatDateFR(fd.date_visite)}
 **Adresse :** ${fd.adresse_bien || '[à rajouter par l\'expert]'}
 **Nature de la mission :** ${fd.type_mission || '[à rajouter par l\'expert]'}
 **Donneur d'ordre :** ${fd.nom_donneur_ordre || ''} (${fd.donneur_ordre || ''})
-
-*Le présent document constitue un pré-rapport préparatoire. Les valeurs vénales et conclusions définitives feront l'objet d'une analyse complémentaire par l'expert signataire.*
 
 ---
 
@@ -696,7 +706,7 @@ function buildPhotoParagraphs(photos64Array, caption = '') {
 
 // ─────────────────────────────────────────────────────────────────────────────
 
-function buildCoverPage(formData, logo) {
+function buildCoverPage(formData, logo, photos64 = {}) {
   const fd = formData || {};
   const items = [
     pageBreak(),
@@ -714,8 +724,8 @@ function buildCoverPage(formData, logo) {
     }
   }
 
+  // Bandeau titre principal
   items.push(
-    // Bandeau titre principal
     new Table({
       width: { size: 100, type: WidthType.PERCENTAGE },
       borders: noBorders(),
@@ -723,54 +733,67 @@ function buildCoverPage(formData, logo) {
         children: [shadedCell(C.NAVY, [
           new Paragraph({
             alignment: AlignmentType.CENTER,
-            spacing: { before: 200, after: 100 },
+            spacing: { before: 200, after: 80 },
             children: [new TextRun({ text: 'RAPPORT D\'EXPERTISE IMMOBILIÈRE', bold: true, color: C.WHITE, size: 36, font: 'Times New Roman' })]
           }),
           new Paragraph({
             alignment: AlignmentType.CENTER,
-            spacing: { before: 60, after: 200 },
-            children: [new TextRun({ text: 'Pré-rapport soumis à validation de l\'expert signataire', color: C.NAVY_L, size: 22, font: 'Times New Roman', italics: true })]
+            spacing: { before: 40, after: 200 },
+            children: [new TextRun({ text: '[à rajouter par l\'expert] — ex : ENSEMBLE IMMOBILIER', color: C.AMBER, size: 22, font: 'Times New Roman', italics: true })]
           })
         ], { borders: noBorders() })]
       })]
     }),
-    spacer(300),
+    spacer(200)
+  );
 
-    // Tableau identité dossier
+  // Photo du bien (première photo extérieure si disponible)
+  const coverPhotos = photos64.ext && photos64.ext.length ? [photos64.ext[0]] : [];
+  if (coverPhotos.length) {
+    const imgRun = buildImageRun(coverPhotos[0], { width: 460, height: 300 });
+    if (imgRun) {
+      items.push(new Paragraph({ children: [imgRun], alignment: AlignmentType.CENTER, spacing: { before: 60, after: 200 } }));
+    }
+  } else {
+    items.push(imagePlaceholder('[à rajouter par l\'expert] — Photo du bien'));
+    items.push(spacer(200));
+  }
+
+  // Tableau identité dossier — ordre : Référence dossier, Adresse du bien, Donneur d'ordre, Références cadastrales
+  const donneurOrdre = `${fd.nom_donneur_ordre || ''} — ${fd.donneur_ordre || ''}`.replace(/^ — | — $/, '') || '[à rajouter par l\'expert]';
+  items.push(
     new Table({
       width: { size: 100, type: WidthType.PERCENTAGE },
       borders: noBorders(),
       rows: [
         buildCoverRow('Référence dossier', fd.ref_dossier || '[à rajouter par l\'expert]'),
-        buildCoverRow('Date de visite', fd.date_visite || '[à rajouter par l\'expert]'),
         buildCoverRow('Adresse du bien', fd.adresse_bien || '[à rajouter par l\'expert]'),
-        buildCoverRow('Type de bien', fd.type_bien || '[à rajouter par l\'expert]'),
-        buildCoverRow('Nature de la mission', fd.type_mission || '[à rajouter par l\'expert]'),
-        buildCoverRow('Donneur d\'ordre', `${fd.nom_donneur_ordre || ''} — ${fd.donneur_ordre || ''}`.replace(/^ — | — $/, '')),
-        buildCoverRow('Régime juridique', fd.regime_juridique || '[à rajouter par l\'expert]'),
+        buildCoverRow('Donneur d\'ordre', donneurOrdre),
         buildCoverRow('Références cadastrales', fd.refs_cadastrales || '[à rajouter par l\'expert]'),
       ]
     }),
+    spacer(300)
+  );
 
-    spacer(400),
-    imagePlaceholder('[à rajouter par l\'expert] — Photo de couverture du bien'),
-    spacer(300),
-
-    // Clause confidentialité
-    new Paragraph({
-      alignment: AlignmentType.CENTER,
-      spacing: { before: 100, after: 60 },
-      children: [new TextRun({ text: 'CLAUSE DE CONFIDENTIALITÉ', bold: true, size: 18, font: 'Times New Roman', color: C.NAVY })]
-    }),
-    new Paragraph({
-      alignment: AlignmentType.JUSTIFIED,
-      spacing: { before: 60, after: 60 },
-      children: [new TextRun({
-        text: 'Le présent rapport est établi à la demande et à l\'usage exclusif du donneur d\'ordre. Il ne peut être communiqué à des tiers sans l\'accord écrit de l\'expert signataire. Toute reproduction partielle ou totale est interdite. Ce document constitue un pré-rapport préparatoire — les valeurs vénales et conclusions définitives feront l\'objet d\'une validation complémentaire par l\'expert signataire conformément à la Charte de l\'Expertise Immobilière (5e édition) et au référentiel TEGOVA (6e édition).',
-        size: 17, font: 'Times New Roman', color: C.DARK, italics: true
+  // Pied de page couverture — adresse Cabinet JALTA
+  items.push(
+    new Table({
+      width: { size: 100, type: WidthType.PERCENTAGE },
+      borders: noBorders(),
+      rows: [new TableRow({
+        children: [new TableCell({
+          borders: { top: { style: BorderStyle.SINGLE, size: 4, color: C.NAVY } },
+          margins: { top: 120, bottom: 60, left: 0, right: 0 },
+          children: [
+            new Paragraph({ alignment: AlignmentType.CENTER, spacing: { before: 60, after: 20 }, children: [new TextRun({ text: '09 Lotissement Bardinet Dillon – Route de Chateauboeuf – 97200 FORT DE FRANCE', size: 16, font: 'Times New Roman', color: C.DARK })] }),
+            new Paragraph({ alignment: AlignmentType.CENTER, spacing: { before: 20, after: 20 }, children: [new TextRun({ text: 'Tél. : 0596 75 08 90  -  Email : contact@cabinet-jalta.fr', size: 16, font: 'Times New Roman', color: C.DARK })] }),
+            new Paragraph({ alignment: AlignmentType.CENTER, spacing: { before: 20, after: 60 }, children: [new TextRun({ text: 'R.C.S. Fort-de-France 95B 488  -  N° SIRET : 402 038 285 000 19', size: 16, font: 'Times New Roman', color: C.DARK })] }),
+          ]
+        })]
       })]
     })
   );
+
   return items;
 }
 
@@ -824,7 +847,7 @@ function buildSommaire() {
             new TableCell({
               width: { size: 13, type: WidthType.PERCENTAGE },
               borders: noBorders(),
-              children: [new Paragraph({ children: [new TextRun({ text: '[à rajouter par l\'expert]', size: 18, font: 'Times New Roman', color: C.AMBER })], alignment: AlignmentType.RIGHT, spacing: { before: 60, after: 60 } })]
+              children: [new Paragraph({ children: [new TextRun({ text: '', size: 18, font: 'Times New Roman' })], alignment: AlignmentType.RIGHT, spacing: { before: 60, after: 60 } })]
             })
           ]
         })]
@@ -840,7 +863,7 @@ function buildResumeSection(sections, formData) {
     ['ADRESSE DU BIEN', fd.adresse_bien || '[à rajouter par l\'expert]'],
     ['RÉFÉRENCE CADASTRALE', fd.refs_cadastrales || '[à rajouter par l\'expert]'],
     ['TYPE D\'ACTIF', fd.type_bien || '[à rajouter par l\'expert]'],
-    ['DATE DE L\'ÉVALUATION', fd.date_visite || '[à rajouter par l\'expert]'],
+    ['DATE DE L\'ÉVALUATION', formatDateFR(fd.date_visite)],
     ['ASSAINISSEMENT', fd.assainissement || '[à rajouter par l\'expert]'],
     ['OBJECTIF DE L\'ÉVALUATION', fd.type_mission || '[à rajouter par l\'expert]'],
     ['SITUATION URBANISTIQUE', fd.zonage_plu || '[à rajouter par l\'expert]'],
@@ -852,8 +875,6 @@ function buildResumeSection(sections, formData) {
     pageBreak(),
     navyBanner('I/ RÉSUMÉ'),
     spacer(120),
-    bodyPara(sections.resume_mission || '[à rajouter par l\'expert]'),
-    spacer(150),
     new Table({
       width: { size: 100, type: WidthType.PERCENTAGE },
       borders: noBorders(),
@@ -874,6 +895,87 @@ function buildResumeSection(sections, formData) {
   ];
 }
 
+function parsePhotoResult(val) {
+  if (!val || typeof val === 'object') return val || {};
+  try {
+    return JSON.parse(val.replace(/^```json\n?/, '').replace(/\n?```$/, ''));
+  } catch { return {}; }
+}
+
+function buildMateriauxTable(fd, photoResults = {}) {
+  const ext = parsePhotoResult(photoResults.ext);
+  const int = parsePhotoResult(photoResults.int);
+
+  // Fusion formulaire + observations IA photos (le formulaire prime si renseigné)
+  const toiture_mat = fd.materiau_toiture || ext.toiture_materiau || '[à compléter]';
+  const toiture_etat = fd.etat_toiture || ext.toiture_etat || '[à compléter]';
+  const toiture_forme = fd.forme_toiture || '';
+  const facades_mat = fd.materiau_facades || ext.facades_materiau || '[à compléter]';
+  const facades_etat = fd.etat_facades || ext.facades_etat || '[à compléter]';
+  const menus_mat = fd.menuiseries_ext || ext.menuiseries_materiau || '[à compléter]';
+  const sols_mat = fd.sols_interieurs || int.sols_type || '[à rajouter par l\'expert]';
+  const elec_etat = fd.etat_electrique || int.electricite_obs || '[à compléter]';
+
+  const corps = [
+    ['Gros œuvre / Structure', fd.type_construction || '[à compléter]', '—'],
+    ['Toiture / Couverture', `${toiture_mat}${toiture_forme ? ' — ' + toiture_forme : ''}`, toiture_etat],
+    ['Façades / Enduits', facades_mat, facades_etat],
+    ['Menuiseries extérieures', menus_mat, '—'],
+    ['Revêtements de sols', sols_mat, '—'],
+    ['Plomberie / Sanitaires', '—', fd.etat_plomberie || '[à compléter]'],
+    ['Installation électrique', '—', elec_etat],
+    ['Chauffage / Climatisation', fd.chauffage || 'Néant (climat tropical)', '—'],
+  ];
+  return new Table({
+    width: { size: 100, type: WidthType.PERCENTAGE },
+    borders: noBorders(),
+    rows: [
+      new TableRow({
+        children: [
+          shadedCell(C.NAVY, [new Paragraph({ children: [new TextRun({ text: 'Corps d\'état', bold: true, size: 19, color: C.WHITE, font: 'Times New Roman' })], spacing: { before: 40, after: 40 } })], { width: { size: 35, type: WidthType.PERCENTAGE } }),
+          shadedCell(C.NAVY, [new Paragraph({ children: [new TextRun({ text: 'Matériaux / Description', bold: true, size: 19, color: C.WHITE, font: 'Times New Roman' })], spacing: { before: 40, after: 40 } })], { width: { size: 40, type: WidthType.PERCENTAGE } }),
+          shadedCell(C.NAVY, [new Paragraph({ children: [new TextRun({ text: 'État', bold: true, size: 19, color: C.WHITE, font: 'Times New Roman' })], spacing: { before: 40, after: 40 } })], { width: { size: 25, type: WidthType.PERCENTAGE } }),
+        ]
+      }),
+      ...corps.map(([label, desc, etat], i) => new TableRow({
+        children: [
+          shadedCell(i % 2 === 0 ? C.NAVY_L : C.GRAY, [new Paragraph({ children: [new TextRun({ text: label, bold: true, size: 19, color: C.NAVY, font: 'Times New Roman' })], spacing: { before: 40, after: 40 } })], { width: { size: 35, type: WidthType.PERCENTAGE } }),
+          shadedCell(C.WHITE, [new Paragraph({ children: [new TextRun({ text: desc, size: 19, color: desc.includes('[à') ? C.AMBER : C.DARK, font: 'Times New Roman' })], spacing: { before: 40, after: 40 } })], { width: { size: 40, type: WidthType.PERCENTAGE }, borders: cellBorder(C.GRAY_MED) }),
+          shadedCell(C.WHITE, [new Paragraph({ children: [new TextRun({ text: etat, size: 19, color: etat.includes('[à') ? C.AMBER : C.DARK, font: 'Times New Roman' })], spacing: { before: 40, after: 40 } })], { width: { size: 25, type: WidthType.PERCENTAGE }, borders: cellBorder(C.GRAY_MED) }),
+        ]
+      }))
+    ]
+  });
+}
+
+function buildDocumentsSection(documentsList) {
+  const docs = (documentsList || '').split(',').map(d => d.trim()).filter(Boolean);
+  if (!docs.length) {
+    return [imagePlaceholder('[à rajouter par l\'expert] — Liste des pièces et documents consultés')];
+  }
+  const rows = docs.map(doc =>
+    new TableRow({
+      children: [
+        new TableCell({
+          borders: cellBorder(C.GRAY_MED),
+          margins: { top: 60, bottom: 60, left: 120, right: 120 },
+          children: [new Paragraph({ children: [new TextRun({ text: '✓', bold: true, color: C.NAVY, size: 19, font: 'Times New Roman' })], spacing: { before: 30, after: 30 } })]
+        }),
+        new TableCell({
+          borders: cellBorder(C.GRAY_MED),
+          margins: { top: 60, bottom: 60, left: 120, right: 120 },
+          children: [new Paragraph({ children: [new TextRun({ text: doc, size: 19, font: 'Times New Roman' })], spacing: { before: 30, after: 30 } })]
+        })
+      ]
+    })
+  );
+  return [
+    new Table({ width: { size: 80, type: WidthType.PERCENTAGE }, borders: noBorders(), rows }),
+    spacer(60),
+    bodyPara('[à rajouter par l\'expert] — Compléter si nécessaire', { color: C.AMBER }),
+  ];
+}
+
 function buildExpertiseDetaillee(sections, formData) {
   const fd = formData || {};
   const s = sections || {};
@@ -891,15 +993,15 @@ function buildExpertiseDetaillee(sections, formData) {
     spacer(120),
     subBanner('3   DATE DE L\'ÉVALUATION'),
     spacer(80),
-    bodyPara(`La présente évaluation a été réalisée à la date du ${fd.date_visite || '[à rajouter par l\'expert]'}.`),
+    bodyPara(`La présente évaluation a été réalisée à la date du ${formatDateFR(fd.date_visite)}.`),
     spacer(120),
     subBanner('4   VISITE ET DOCUMENTS MIS À DISPOSITION'),
     spacer(80),
-    imagePlaceholder('[à rajouter par l\'expert] — Liste des pièces et documents consultés'),
+    ...buildDocumentsSection(fd.documents_fournis),
     spacer(120),
     subBanner('5   CLAUSE DE CONFIDENTIALITÉ'),
     spacer(80),
-    bodyPara('Le présent rapport est établi à la demande et à l\'usage exclusif du donneur d\'ordre. Il ne peut être communiqué à des tiers sans l\'accord écrit de l\'expert signataire. Toute reproduction partielle ou totale est interdite sans autorisation préalable.'),
+    bodyPara('Le présent rapport est établi à la demande et à l\'usage exclusif du donneur d\'ordre. Il ne peut être communiqué à des tiers sans l\'accord écrit de l\'expert signataire. Toute reproduction partielle ou totale est interdite sans autorisation préalable. Les valeurs vénales et conclusions définitives feront l\'objet d\'une validation complémentaire par l\'expert signataire conformément à la Charte de l\'Expertise Immobilière (5e édition) et au référentiel TEGOVA (6e édition).'),
   ];
 }
 
@@ -913,11 +1015,47 @@ function buildSituationSection(sections) {
     spacer(80),
     ...splitParagraphs(s.situation_geographique || '[à rajouter par l\'expert]'),
     spacer(100),
-    imagePlaceholder('[à rajouter par l\'expert] — Plan de situation / Carte de localisation'),
+    // Espace cartes IGN + Géoportail
+    new Table({
+      width: { size: 100, type: WidthType.PERCENTAGE },
+      borders: noBorders(),
+      rows: [new TableRow({
+        children: [
+          new TableCell({
+            borders: { top: { style: BorderStyle.SINGLE, size: 2, color: C.GRAY_MED }, bottom: { style: BorderStyle.SINGLE, size: 2, color: C.GRAY_MED }, left: { style: BorderStyle.SINGLE, size: 2, color: C.GRAY_MED }, right: { style: BorderStyle.SINGLE, size: 2, color: C.GRAY_MED } },
+            margins: { top: 300, bottom: 300, left: 120, right: 60 },
+            width: { size: 49, type: WidthType.PERCENTAGE },
+            shading: { fill: C.GRAY, type: ShadingType.CLEAR },
+            children: [new Paragraph({ alignment: AlignmentType.CENTER, children: [new TextRun({ text: '[à rajouter par l\'expert] — Carte IGN / Plan de situation', color: C.AMBER, size: 18, font: 'Times New Roman', bold: true })] })]
+          }),
+          new TableCell({
+            borders: { top: { style: BorderStyle.SINGLE, size: 2, color: C.GRAY_MED }, bottom: { style: BorderStyle.SINGLE, size: 2, color: C.GRAY_MED }, left: { style: BorderStyle.SINGLE, size: 2, color: C.GRAY_MED }, right: { style: BorderStyle.SINGLE, size: 2, color: C.GRAY_MED } },
+            margins: { top: 300, bottom: 300, left: 60, right: 120 },
+            width: { size: 49, type: WidthType.PERCENTAGE },
+            shading: { fill: C.GRAY, type: ShadingType.CLEAR },
+            children: [new Paragraph({ alignment: AlignmentType.CENTER, children: [new TextRun({ text: '[à rajouter par l\'expert] — Vue aérienne Géoportail®', color: C.AMBER, size: 18, font: 'Times New Roman', bold: true })] })]
+          })
+        ]
+      })]
+    }),
+    spacer(80),
+    new Paragraph({ alignment: AlignmentType.CENTER, spacing: { before: 20, after: 80 }, children: [new TextRun({ text: 'Localisation de l\'ensemble immobilier concerné', size: 17, italics: true, font: 'Times New Roman', color: C.DARK })] }),
+    spacer(80),
+    // Environnement économique
+    subBanner('1 bis   ENVIRONNEMENT ÉCONOMIQUE'),
+    spacer(80),
+    ...splitParagraphs(s.marche_immobilier || '[à rajouter par l\'expert] — Analyse du marché immobilier local'),
     spacer(150),
     subBanner('2   SITUATION URBANISTIQUE'),
     spacer(80),
     ...splitParagraphs(s.situation_urbanistique || '[à rajouter par l\'expert]'),
+    spacer(120),
+    // Espace PPR
+    subBanner('Plan de Prévention des Risques Naturels (P.P.R.)'),
+    spacer(80),
+    bodyPara('[à rajouter par l\'expert] — Selon le zonage du Plan de Prévention des Risques Naturels (P.P.R.), approuvé en Décembre 2013, le terrain d\'assiette est classé en zone... (aléa...), subissant l\'application de prescriptions particulières.'),
+    spacer(80),
+    imagePlaceholder('[à rajouter par l\'expert] — Carte PPR / Extrait du plan de zonage'),
     spacer(150),
     subBanner('3   SITUATION JURIDIQUE'),
     spacer(80),
@@ -931,7 +1069,7 @@ function buildSituationSection(sections) {
   ];
 }
 
-function buildDescriptionSection(sections, formData, p64 = {}) {
+function buildDescriptionSection(sections, formData, p64 = {}, photoResults = {}) {
   const fd = formData || {};
   const surfacesArr = fd.surfaces_array || [];
 
@@ -985,13 +1123,30 @@ function buildDescriptionSection(sections, formData, p64 = {}) {
           shadedCell(C.GRAY, [new Paragraph({ children: [new TextRun({ text: totalAnnexes > 0 ? `${totalAnnexes.toFixed(2)} m²` : '[à rajouter par l\'expert]', size: 19, font: 'Times New Roman' })], alignment: AlignmentType.RIGHT, spacing: { before: 40, after: 40 } })], { columnSpan: 2 }),
         ]
       }),
+      new TableRow({
+        children: [
+          shadedCell(C.NAVY, [new Paragraph({ children: [new TextRun({ text: 'TOTAL SURFACE UTILE PONDÉRÉE', bold: true, size: 19, font: 'Times New Roman', color: C.WHITE })], spacing: { before: 60, after: 60 } })], { columnSpan: 3 }),
+          shadedCell(C.NAVY, [new Paragraph({ children: [new TextRun({ text: (totalHab + totalAnnexes) > 0 ? `${(totalHab + totalAnnexes).toFixed(2)} m²` : '[à rajouter par l\'expert]', bold: true, size: 19, font: 'Times New Roman', color: C.WHITE })], alignment: AlignmentType.RIGHT, spacing: { before: 60, after: 60 } })], { columnSpan: 2 }),
+        ]
+      }),
     ]
   });
+
+  // Intro composition du bien
+  const niveaux = fd.nb_niveaux ? `élevé à ${fd.nb_niveaux}` : '';
+  const introLines = [
+    'L\'ensemble immobilier, objet du présent rapport, est composé de :',
+  ];
 
   return [
     pageBreak(),
     navyBanner('IV/ DESCRIPTION DU BIEN'),
     spacer(120),
+    bodyPara(introLines[0]),
+    new Paragraph({ children: [new TextRun({ text: `— d'un terrain d'une superficie de ${fd.superficie_terrain || '[à compléter]'} m²${fd.forme_terrain ? ', de forme ' + fd.forme_terrain : ''}, sur lequel sont édifiés :`, size: 20, font: 'Times New Roman' })], bullet: { level: 0 }, spacing: { before: 40, after: 20 } }),
+    new Paragraph({ children: [new TextRun({ text: `— un (1) bâtiment à usage d'habitation ${niveaux}${fd.type_bien ? ' (' + fd.type_bien + ')' : ''},`, size: 20, font: 'Times New Roman' })], bullet: { level: 0 }, spacing: { before: 20, after: 20 } }),
+    new Paragraph({ children: [new TextRun({ text: '— et des aménagements extérieurs (abords).', size: 20, font: 'Times New Roman' })], bullet: { level: 0 }, spacing: { before: 20, after: 80 } }),
+    spacer(100),
     subBanner('LE TERRAIN D\'ASSIETTE'),
     spacer(80),
     ...splitParagraphs(sections.description_terrain || '[à rajouter par l\'expert]'),
@@ -1011,6 +1166,10 @@ function buildDescriptionSection(sections, formData, p64 = {}) {
     ...(p64.int && p64.int.length
       ? buildPhotoParagraphs(p64.int, 'Vues intérieures')
       : [imagePlaceholder('[à rajouter par l\'expert] — Photos intérieures')]),
+    spacer(150),
+    subBanner('DESCRIPTIF DES MATÉRIAUX PAR CORPS D\'ÉTAT'),
+    spacer(80),
+    buildMateriauxTable(fd, photoResults),
     spacer(150),
     subBanner('SURFACES'),
     spacer(80),
@@ -1217,19 +1376,27 @@ function buildGlossaireSection() {
   ];
 }
 
+// Formate une date YYYY-MM-DD en DD/MM/YYYY
+function formatDateFR(dateStr) {
+  if (!dateStr) return '[à rajouter par l\'expert]';
+  const m = dateStr.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (m) return `${m[3]}/${m[2]}/${m[1]}`;
+  return dateStr;
+}
+
 // Découpe un texte multiligne en paragraphes docx
 function splitParagraphs(text) {
   if (!text) return [bodyPara('[à rajouter par l\'expert]')];
   return text.split(/\n+/).filter(l => l.trim()).map(line => bodyPara(line));
 }
 
-async function generateJaltaDocx(sections, formData, photos64 = {}, logo = null) {
+async function generateJaltaDocx(sections, formData, photos64 = {}, logo = null, photoResults = {}) {
   const fd = formData || {};
   const p64 = photos64 || {};
 
   const children = [
-    // Page de couverture (avec logo si disponible)
-    ...buildCoverPage(fd, logo),
+    // Page de couverture (avec logo et photo de couverture si disponible)
+    ...buildCoverPage(fd, logo, p64),
     // Sommaire
     ...buildSommaire(),
     // I — Résumé
@@ -1239,7 +1406,7 @@ async function generateJaltaDocx(sections, formData, photos64 = {}, logo = null)
     // III — Situation
     ...buildSituationSection(sections),
     // IV — Description (terrain + bâti + surfaces + désordres + photos intégrées)
-    ...buildDescriptionSection(sections, fd, p64),
+    ...buildDescriptionSection(sections, fd, p64, photoResults),
     // V — Éléments de jugement
     ...buildJugementSection(sections),
     // VI — Évaluation
@@ -1317,9 +1484,9 @@ async function generateJaltaDocx(sections, formData, photos64 = {}, logo = null)
               border: { top: { style: BorderStyle.SINGLE, size: 4, color: C.GRAY_MED } },
               spacing: { before: 60 },
               children: [
-                new TextRun({ text: 'Page ', size: 16, color: C.DARK, font: 'Times New Roman' }),
+                new TextRun({ text: 'Page n°', size: 16, color: C.DARK, font: 'Times New Roman' }),
                 new TextRun({ children: [PageNumber.CURRENT], size: 16, color: C.DARK, font: 'Times New Roman' }),
-                new TextRun({ text: ' — Document confidentiel — ', size: 16, color: C.DARK, font: 'Times New Roman' }),
+                new TextRun({ text: ` — Dossier (${fd.nom_donneur_ordre || fd.donneur_ordre || 'Donneur d\'ordre'}) — `, size: 16, color: C.DARK, font: 'Times New Roman' }),
                 new TextRun({ text: fd.adresse_bien || '', size: 16, color: C.NAVY, font: 'Times New Roman', bold: true }),
               ]
             })
@@ -1432,6 +1599,510 @@ function parseInline(text) {
   if (lastIndex < text.length) runs.push(new TextRun({ text: text.slice(lastIndex), size: 22 }));
   return runs.length ? runs : [new TextRun({ text, size: 22 })];
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// FICHE DOSSIER — DEVIS DOCX
+// ─────────────────────────────────────────────────────────────────────────────
+
+function amountToWordsFr(n) {
+  const ones = ['', 'UN', 'DEUX', 'TROIS', 'QUATRE', 'CINQ', 'SIX', 'SEPT', 'HUIT', 'NEUF',
+    'DIX', 'ONZE', 'DOUZE', 'TREIZE', 'QUATORZE', 'QUINZE', 'SEIZE', 'DIX-SEPT', 'DIX-HUIT', 'DIX-NEUF'];
+
+  function tens(x) {
+    if (x < 20) return ones[x];
+    const t = Math.floor(x / 10), u = x % 10;
+    if (t === 2) return u ? 'VINGT-' + ones[u] : 'VINGT';
+    if (t === 3) return u ? 'TRENTE-' + ones[u] : 'TRENTE';
+    if (t === 4) return u ? 'QUARANTE-' + ones[u] : 'QUARANTE';
+    if (t === 5) return u ? 'CINQUANTE-' + ones[u] : 'CINQUANTE';
+    if (t === 6) return u ? 'SOIXANTE-' + ones[u] : 'SOIXANTE';
+    if (t === 7) return 'SOIXANTE-' + ones[10 + u];
+    if (t === 8) return u ? 'QUATRE-VINGT-' + ones[u] : 'QUATRE-VINGTS';
+    if (t === 9) return 'QUATRE-VINGT-' + ones[10 + u];
+    return '';
+  }
+
+  function hundreds(x) {
+    if (x < 100) return tens(x);
+    const h = Math.floor(x / 100), r = x % 100;
+    const pre = h === 1 ? 'CENT' : ones[h] + ' CENT';
+    return r ? pre + ' ' + tens(r) : (h > 1 ? pre + 'S' : pre);
+  }
+
+  if (!n) return 'ZÉRO';
+  if (n < 1000) return hundreds(n);
+  const k = Math.floor(n / 1000), r = n % 1000;
+  const pre = k === 1 ? 'MILLE' : hundreds(k) + ' MILLE';
+  return r ? pre + ' ' + hundreds(r) : pre;
+}
+
+async function generateDevisDocx(data) {
+  const { num_dossier, suivi_par, ordonnateur, email_ord, objet,
+          description_bien, lieu, honoraires_ttc, logo } = data;
+
+  const signataire = suivi_par === 'CL' ? 'Claude LUCE' : 'Roméo VULCAIN';
+  const montant = parseFloat(honoraires_ttc) || 0;
+  const montantStr = montant.toFixed(2) + ' €';
+  const montantLettres = amountToWordsFr(Math.round(montant));
+
+  const MONTHS_FR = ['JANVIER','FÉVRIER','MARS','AVRIL','MAI','JUIN','JUILLET','AOÛT','SEPTEMBRE','OCTOBRE','NOVEMBRE','DÉCEMBRE'];
+  const now = new Date();
+  const dateStr = `Fort-de-France, le ${now.getDate()} ${MONTHS_FR[now.getMonth()]} ${now.getFullYear()}`;
+
+  const genreMatch = (ordonnateur || '').match(/^(Madame|Mme|M\.|Monsieur)/i);
+  const genre = genreMatch ? genreMatch[0] : 'Monsieur';
+
+  const nb = { style: BorderStyle.NONE, size: 0, color: 'auto' };
+  const noBorders = { top: nb, bottom: nb, left: nb, right: nb, insideH: nb, insideV: nb };
+
+  const para = (children, opts = {}) => new Paragraph({
+    children: Array.isArray(children) ? children : [new TextRun({ text: String(children), size: 18, font: 'Calibri' })],
+    spacing: { before: 30, after: 30 },
+    ...opts
+  });
+
+  const tr = (text, opts = {}) => new TextRun({ text, size: 18, font: 'Calibri', ...opts });
+
+  const sectionBar = (title) => new Paragraph({
+    children: [new TextRun({ text: title, bold: true, color: C.WHITE, size: 18, font: 'Calibri' })],
+    shading: { fill: C.NAVY, type: ShadingType.SOLID },
+    spacing: { before: 80, after: 40 },
+    indent: { left: 100 }
+  });
+
+  const dashItem = (runs) => new Paragraph({
+    children: Array.isArray(runs) ? runs : [tr('- ' + runs)],
+    indent: { left: 400 },
+    spacing: { before: 20, after: 20 }
+  });
+
+  // Logo cell
+  const logoCell = [];
+  if (logo?.data) {
+    try {
+      const buf = Buffer.from(logo.data, 'base64');
+      const imgType = (logo.mimeType || '').includes('png') ? 'png' : 'jpg';
+      logoCell.push(new Paragraph({
+        children: [new ImageRun({ data: buf, transformation: { width: 80, height: 80 }, type: imgType })],
+        spacing: { before: 0, after: 0 }
+      }));
+    } catch { logoCell.push(para('')); }
+  } else {
+    logoCell.push(
+      new Paragraph({ children: [tr('CJ', { bold: true, size: 40, color: C.NAVY })], spacing: { before: 0, after: 0 } }),
+      new Paragraph({ children: [tr('CABINET', { size: 18, color: C.NAVY })], spacing: { before: 0, after: 0 } }),
+      new Paragraph({ children: [tr('JALTA', { size: 18, color: C.NAVY })], spacing: { before: 0, after: 0 } })
+    );
+  }
+
+  const headerTable = new Table({
+    width: { size: 100, type: WidthType.PERCENTAGE },
+    borders: noBorders,
+    rows: [new TableRow({ children: [
+      new TableCell({ width: { size: 22, type: WidthType.PERCENTAGE }, borders: noBorders, children: logoCell }),
+      new TableCell({ width: { size: 78, type: WidthType.PERCENTAGE }, borders: noBorders, children: [
+        new Paragraph({
+          children: [tr('EXPERTISES IMMOBILIERES', { bold: true, italics: true, size: 20, color: C.NAVY })],
+          spacing: { before: 10, after: 10 }
+        }),
+        new Paragraph({
+          children: [tr('Territoires : Martinique, Guadeloupe, Saint-Martin, Saint Barthélémy et Guyane Française', { italics: true, size: 16 })],
+          spacing: { before: 0, after: 0 },
+          border: { bottom: { style: BorderStyle.SINGLE, size: 3, color: C.GRAY_MED } }
+        }),
+        new Paragraph({ children: [tr(dateStr)], alignment: AlignmentType.RIGHT, spacing: { before: 40, after: 20 } }),
+        new Paragraph({ children: [tr(ordonnateur || 'Monsieur', { bold: true })], alignment: AlignmentType.RIGHT, spacing: { before: 10, after: 10 } }),
+        new Paragraph({ children: [tr('Email. : ' + (email_ord || ''))], alignment: AlignmentType.RIGHT, spacing: { before: 0, after: 10 } }),
+      ]})
+    ]})]
+  });
+
+  const affaireBox = new Table({
+    width: { size: 45, type: WidthType.PERCENTAGE },
+    borders: {
+      top: { style: BorderStyle.SINGLE, size: 6, color: C.BLACK },
+      bottom: { style: BorderStyle.SINGLE, size: 6, color: C.BLACK },
+      left: { style: BorderStyle.SINGLE, size: 6, color: C.BLACK },
+      right: { style: BorderStyle.SINGLE, size: 6, color: C.BLACK },
+      insideH: nb, insideV: nb
+    },
+    rows: [new TableRow({ children: [
+      new TableCell({ borders: noBorders, margins: { top: 80, bottom: 80, left: 120, right: 120 }, children: [
+        new Paragraph({
+          children: [tr('Affaire : ', { bold: true }), tr(num_dossier || '')],
+          spacing: { before: 40, after: 40 }
+        }),
+        new Paragraph({
+          children: [tr('Objet ', { bold: true, underline: {} }), tr(': proposition de services')],
+          spacing: { before: 20, after: 40 }
+        })
+      ]})
+    ]})]
+  });
+
+  const delaiTable = new Table({
+    width: { size: 100, type: WidthType.PERCENTAGE },
+    borders: noBorders,
+    rows: [
+      new TableRow({ children: [
+        new TableCell({ width: { size: 33, type: WidthType.PERCENTAGE }, borders: noBorders,
+          children: [para('- Intervention sur site :', { spacing: { before: 20, after: 20 } })] }),
+        new TableCell({ width: { size: 67, type: WidthType.PERCENTAGE }, borders: noBorders,
+          children: [para('A déterminer ultérieurement, après confirmation de la mission et versement de la provision', { spacing: { before: 20, after: 20 } })] })
+      ]}),
+      new TableRow({ children: [
+        new TableCell({ width: { size: 33, type: WidthType.PERCENTAGE }, borders: noBorders,
+          children: [para('- Remise rapport :', { spacing: { before: 20, after: 20 } })] }),
+        new TableCell({ width: { size: 67, type: WidthType.PERCENTAGE }, borders: noBorders,
+          children: [para('15 jours ouvrés environ, après la visite des lieux et versement de la totalité des honoraires', { spacing: { before: 20, after: 20 } })] })
+      ]})
+    ]
+  });
+
+  const children = [
+    headerTable,
+    para('', { spacing: { before: 80, after: 40 } }),
+    affaireBox,
+    para('', { spacing: { before: 80, after: 20 } }),
+    para(genre + ','),
+    para('Faisant suite à votre demande, nous avons l\'avantage de vous communiquer notre proposition pour la mission en objet.', { spacing: { before: 20, after: 60 } }),
+
+    sectionBar('CONCERNE'),
+    new Paragraph({
+      children: [tr(description_bien || `Un bien immobilier sis ${lieu || '[lieu à compléter]'}.`)],
+      spacing: { before: 40, after: 40 }
+    }),
+
+    sectionBar('MISSION'),
+    new Paragraph({
+      children: [tr(`Détermination de la ${objet} du bien immobilier ci-dessus.`, { bold: true })],
+      spacing: { before: 40, after: 40 }
+    }),
+
+    sectionBar('DOCUMENTS A FOURNIR'),
+    dashItem('Extraits documents cadastraux,'),
+    dashItem([tr('- Extrait titre de propriété (partie désignation) ('), tr('s\'il est en votre possession', { italics: true }), tr('),')]),
+    dashItem([tr('- Plans de distribution de la construction ( '), tr('s\'ils existent', { italics: true }), tr('),')]),
+    dashItem([tr('- Etat locatif actuel ('), tr('si loué', { italics: true }), tr(').')]),
+
+    sectionBar('HONORAIRES*'),
+    new Paragraph({
+      children: [
+        tr(`${montantStr} (${montantLettres} EUROS ) TTC*`, { bold: true, size: 20 }),
+        tr(' ( TVA 8.5 % incluse)', { bold: true })
+      ],
+      alignment: AlignmentType.CENTER,
+      spacing: { before: 40, after: 20 }
+    }),
+    new Paragraph({
+      children: [tr('*Honoraires donnés sous réserve que les informations communiquées soient conformes à l\'existant', { italics: true, size: 16 })],
+      alignment: AlignmentType.CENTER,
+      spacing: { before: 0, after: 40 }
+    }),
+
+    sectionBar('CONDITIONS DE REGLEMENT'),
+    new Paragraph({
+      children: [tr('- Provision : '), tr('50 %', { bold: true }), tr(', à la confirmation de la mission')],
+      indent: { left: 400 }, spacing: { before: 20, after: 20 }
+    }),
+    new Paragraph({
+      children: [tr('- Solde : à la remise du rapport')],
+      indent: { left: 400 }, spacing: { before: 20, after: 40 }
+    }),
+
+    sectionBar('DELAI'),
+    delaiTable,
+    para('', { spacing: { before: 80, after: 40 } }),
+
+    para('Restant à votre disposition,'),
+    new Paragraph({
+      children: [tr(`Nous vous prions d'agréer, ${genre},  l'expression de nos sentiments dévoués. `)],
+      spacing: { before: 20, after: 120 }
+    }),
+    new Paragraph({ children: [tr(signataire, { bold: true })], alignment: AlignmentType.RIGHT, spacing: { before: 20, after: 10 } }),
+    new Paragraph({ children: [tr('CABINET JALTA', { bold: true })], alignment: AlignmentType.RIGHT, spacing: { before: 0, after: 100 } }),
+    para('BON POUR ACCORD,'),
+    para('LE'),
+  ];
+
+  const doc = new Document({
+    sections: [{
+      properties: {
+        page: { margin: { top: convertInchesToTwip(0.65), right: convertInchesToTwip(0.85), bottom: convertInchesToTwip(0.55), left: convertInchesToTwip(0.85) } }
+      },
+      footers: {
+        default: new Footer({ children: [
+          new Paragraph({
+            alignment: AlignmentType.CENTER,
+            border: { top: { style: BorderStyle.SINGLE, size: 4, color: C.GRAY_MED } },
+            spacing: { before: 60, after: 30 },
+            children: [tr('Espace LAOUCHEZ – Boulevard N.MANDELA – 97200 FORT DE FRANCE', { size: 16 })]
+          }),
+          new Paragraph({
+            alignment: AlignmentType.CENTER, spacing: { before: 0, after: 20 },
+            children: [tr('Tél. : 0596 75 08 90  -  Email : contact@cabinet-jalta.fr', { size: 16 })]
+          }),
+          new Paragraph({
+            alignment: AlignmentType.CENTER, spacing: { before: 0, after: 0 },
+            children: [tr('R.C.S. Fort-de-France 95B 488  -  N° SIRET : 402 038 285 000 19', { size: 16 })]
+          })
+        ]})
+      },
+      children
+    }]
+  });
+
+  return Packer.toBuffer(doc);
+}
+
+app.post('/api/generate-devis', async (req, res) => {
+  try {
+    const buffer = await generateDevisDocx(req.body);
+    const slug = (req.body.num_dossier || 'JALTA').replace(/[^a-zA-Z0-9\-_]/g, '_');
+    const filename = `Devis_${slug}_${new Date().toISOString().slice(0, 10)}.docx`;
+    res.set({
+      'Content-Type': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      'Content-Disposition': `attachment; filename="${filename}"`,
+      'Content-Length': buffer.length
+    });
+    res.send(buffer);
+  } catch (e) {
+    console.error('Devis error:', e);
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// POST /api/generate-fiche — Fiche dossier (cover page JALTA + tableau récap)
+// ─────────────────────────────────────────────────────────────────────────────
+async function generateFicheDocx(data) {
+  const { num_dossier, suivi_par, ordonnateur, email_ord, objet,
+          lieu, description_bien, date_visite, date_butoir, logo } = data;
+
+  const signataire = suivi_par === 'CL' ? 'Claude LUCE' : 'Roméo VULCAIN';
+  const nb = { style: BorderStyle.NONE, size: 0, color: 'auto' };
+  const noB = { top: nb, bottom: nb, left: nb, right: nb, insideH: nb, insideV: nb };
+
+  // ── Helpers locaux ────────────────────────────────────────────────────────
+  const p = (children, opts = {}) => new Paragraph({
+    children: Array.isArray(children) ? children : [new TextRun({ text: String(children || ''), size: 20, font: 'Times New Roman' })],
+    spacing: { before: 40, after: 40 },
+    ...opts
+  });
+  const t = (text, opts = {}) => new TextRun({ text: String(text || ''), size: 20, font: 'Times New Roman', ...opts });
+
+  const coverRow = (label, value) => new TableRow({
+    children: [
+      new TableCell({
+        width: { size: 38, type: WidthType.PERCENTAGE },
+        shading: { fill: 'E8EDF2', type: ShadingType.SOLID },
+        borders: { bottom: { style: BorderStyle.SINGLE, size: 2, color: 'FFFFFF' }, top: nb, left: nb, right: nb },
+        margins: { top: 60, bottom: 60, left: 120, right: 120 },
+        children: [p(label, { children: [t(label, { bold: true, color: C.NAVY })] })]
+      }),
+      new TableCell({
+        width: { size: 62, type: WidthType.PERCENTAGE },
+        shading: { fill: 'F5F6F7', type: ShadingType.SOLID },
+        borders: { bottom: { style: BorderStyle.SINGLE, size: 2, color: 'FFFFFF' }, top: nb, left: nb, right: nb },
+        margins: { top: 60, bottom: 60, left: 120, right: 120 },
+        children: [p(value || '[à compléter]', { children: [t(value || '[à compléter]', { color: value ? C.DARK : C.AMBER })] })]
+      })
+    ]
+  });
+
+  const infoRow = (label, value) => new TableRow({
+    children: [
+      new TableCell({
+        width: { size: 38, type: WidthType.PERCENTAGE },
+        shading: { fill: 'E8EDF2', type: ShadingType.SOLID },
+        borders: { bottom: { style: BorderStyle.SINGLE, size: 2, color: 'FFFFFF' }, top: nb, left: nb, right: nb },
+        margins: { top: 70, bottom: 70, left: 120, right: 120 },
+        children: [new Paragraph({ children: [new TextRun({ text: label, bold: true, size: 19, font: 'Times New Roman', color: C.NAVY })], spacing: { before: 40, after: 40 } })]
+      }),
+      new TableCell({
+        width: { size: 62, type: WidthType.PERCENTAGE },
+        shading: { fill: 'FAFAFA', type: ShadingType.SOLID },
+        borders: {
+          bottom: { style: BorderStyle.SINGLE, size: 2, color: 'DDDDDD' },
+          top: nb, left: nb, right: nb
+        },
+        margins: { top: 70, bottom: 70, left: 120, right: 120 },
+        children: [new Paragraph({ children: [new TextRun({ text: value || '[à compléter]', size: 19, font: 'Times New Roman', color: value ? C.DARK : C.AMBER })], spacing: { before: 40, after: 40 } })]
+      })
+    ]
+  });
+
+  // ── Page 1 : Cover ────────────────────────────────────────────────────────
+  const coverItems = [];
+
+  // Logo
+  if (logo?.data) {
+    try {
+      const buf = Buffer.from(logo.data, 'base64');
+      const imgType = (logo.mimeType || '').includes('png') ? 'png' : 'jpg';
+      coverItems.push(new Paragraph({
+        children: [new ImageRun({ data: buf, transformation: { width: 180, height: 70 }, type: imgType })],
+        alignment: AlignmentType.LEFT,
+        spacing: { before: 0, after: 200 }
+      }));
+    } catch { /* ignore */ }
+  }
+
+  // Bandeau navy "RAPPORT D'EXPERTISE IMMOBILIÈRE"
+  coverItems.push(
+    new Table({
+      width: { size: 100, type: WidthType.PERCENTAGE },
+      borders: noB,
+      rows: [new TableRow({
+        children: [new TableCell({
+          shading: { fill: C.NAVY, type: ShadingType.SOLID },
+          borders: noB,
+          margins: { top: 160, bottom: 160, left: 200, right: 200 },
+          children: [
+            new Paragraph({
+              alignment: AlignmentType.CENTER,
+              spacing: { before: 0, after: 80 },
+              children: [new TextRun({ text: 'RAPPORT D\'EXPERTISE IMMOBILIÈRE', bold: true, color: 'FFFFFF', size: 36, font: 'Times New Roman' })]
+            }),
+            new Paragraph({
+              alignment: AlignmentType.CENTER,
+              spacing: { before: 0, after: 0 },
+              children: [new TextRun({ text: objet ? `(${objet})` : '[TYPE DE MISSION]', color: C.AMBER, size: 22, font: 'Times New Roman', italics: true })]
+            })
+          ]
+        })]
+      })]
+    }),
+    new Paragraph({ children: [], spacing: { before: 0, after: 200 } })
+  );
+
+  // Photo placeholder
+  coverItems.push(
+    new Table({
+      width: { size: 100, type: WidthType.PERCENTAGE },
+      borders: noB,
+      rows: [new TableRow({
+        children: [new TableCell({
+          shading: { fill: 'D9D9D9', type: ShadingType.SOLID },
+          borders: noB,
+          margins: { top: 200, bottom: 200, left: 0, right: 0 },
+          children: [new Paragraph({
+            alignment: AlignmentType.CENTER,
+            children: [new TextRun({ text: '[PHOTO DU BIEN]', size: 22, font: 'Times New Roman', color: '888888', italics: true })]
+          })]
+        })]
+      })]
+    }),
+    new Paragraph({ children: [], spacing: { before: 0, after: 240 } })
+  );
+
+  // Tableau d'identité dossier (4 lignes)
+  coverItems.push(
+    new Table({
+      width: { size: 100, type: WidthType.PERCENTAGE },
+      borders: noB,
+      rows: [
+        coverRow('Référence dossier', num_dossier),
+        coverRow('Adresse du bien', lieu),
+        coverRow('Donneur d\'ordre', ordonnateur),
+        coverRow('Objet de la mission', objet),
+      ]
+    }),
+    new Paragraph({ children: [], spacing: { before: 0, after: 300 } })
+  );
+
+  // Footer couverture — adresse JALTA
+  coverItems.push(
+    new Table({
+      width: { size: 100, type: WidthType.PERCENTAGE },
+      borders: noB,
+      rows: [new TableRow({
+        children: [new TableCell({
+          borders: { top: { style: BorderStyle.SINGLE, size: 4, color: C.NAVY }, bottom: nb, left: nb, right: nb },
+          margins: { top: 120, bottom: 60 },
+          children: [
+            new Paragraph({ alignment: AlignmentType.CENTER, spacing: { before: 60, after: 20 }, children: [new TextRun({ text: '09 Lotissement Bardinet Dillon – Route de Chateauboeuf – 97200 FORT DE FRANCE', size: 16, font: 'Times New Roman', color: C.DARK })] }),
+            new Paragraph({ alignment: AlignmentType.CENTER, spacing: { before: 20, after: 20 }, children: [new TextRun({ text: 'Tél. : 0596 75 08 90  -  Email : contact@cabinet-jalta.fr', size: 16, font: 'Times New Roman', color: C.DARK })] }),
+            new Paragraph({ alignment: AlignmentType.CENTER, spacing: { before: 20, after: 60 }, children: [new TextRun({ text: 'R.C.S. Fort-de-France 95B 488  -  N° SIRET : 402 038 285 000 19', size: 16, font: 'Times New Roman', color: C.DARK })] }),
+          ]
+        })]
+      })]
+    })
+  );
+
+  // ── Page 2 : Tableau récapitulatif ────────────────────────────────────────
+  const infoItems = [
+    new Paragraph({ pageBreakBefore: true, children: [new TextRun('')] }),
+    new Paragraph({
+      children: [new TextRun({ text: 'RÉCAPITULATIF FICHE DOSSIER', bold: true, size: 26, font: 'Times New Roman', color: C.WHITE })],
+      shading: { fill: C.NAVY, type: ShadingType.SOLID },
+      alignment: AlignmentType.CENTER,
+      spacing: { before: 0, after: 160 },
+      indent: { left: 200, right: 200 }
+    }),
+    new Table({
+      width: { size: 100, type: WidthType.PERCENTAGE },
+      borders: noB,
+      rows: [
+        infoRow('N° dossier', num_dossier),
+        infoRow('Affaire suivie par', signataire),
+        infoRow('Ordonnateur', ordonnateur),
+        infoRow('Email', email_ord),
+        infoRow('Objet de la mission', objet),
+        infoRow('Lieu du bien', lieu),
+        infoRow('Date de visite', date_visite ? formatDateFR(date_visite) : ''),
+        infoRow('Date butoir de remise', date_butoir ? formatDateFR(date_butoir) : ''),
+        infoRow('Description du bien', description_bien),
+      ]
+    })
+  ];
+
+  const jaltaFooter = new Footer({
+    children: [
+      new Paragraph({
+        alignment: AlignmentType.CENTER,
+        border: { top: { style: BorderStyle.SINGLE, size: 4, color: C.GRAY_MED } },
+        spacing: { before: 60, after: 20 },
+        children: [new TextRun({ text: '09 Lotissement Bardinet Dillon – Route de Chateauboeuf – 97200 FORT DE FRANCE', size: 16, font: 'Times New Roman' })]
+      }),
+      new Paragraph({
+        alignment: AlignmentType.CENTER, spacing: { before: 0, after: 0 },
+        children: [new TextRun({ text: 'Tél. : 0596 75 08 90  -  Email : contact@cabinet-jalta.fr', size: 16, font: 'Times New Roman' })]
+      })
+    ]
+  });
+
+  const doc = new Document({
+    sections: [
+      {
+        properties: {
+          page: { margin: { top: convertInchesToTwip(1.0), right: convertInchesToTwip(1.0), bottom: convertInchesToTwip(1.0), left: convertInchesToTwip(1.0) } }
+        },
+        footers: { default: jaltaFooter },
+        children: [...coverItems, ...infoItems]
+      }
+    ]
+  });
+
+  return Packer.toBuffer(doc);
+}
+
+app.post('/api/generate-fiche', async (req, res) => {
+  try {
+    const buffer = await generateFicheDocx(req.body);
+    const slug = (req.body.num_dossier || 'JALTA').replace(/[^a-zA-Z0-9\-_]/g, '_');
+    const filename = `Fiche_${slug}_${new Date().toISOString().slice(0, 10)}.docx`;
+    res.set({
+      'Content-Type': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      'Content-Disposition': `attachment; filename="${filename}"`,
+      'Content-Length': buffer.length
+    });
+    res.send(buffer);
+  } catch (e) {
+    console.error('Fiche error:', e);
+    res.status(500).json({ error: e.message });
+  }
+});
 
 // ─────────────────────────────────────────────────────────────────────────────
 const PORT = process.env.PORT || 3000;

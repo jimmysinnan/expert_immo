@@ -18,14 +18,17 @@
     </div>
   </div>
   <div class="nav-tabs">
-    <button class="nav-tab active" id="tab-form" onclick="showPage('form')">
-      <span class="tab-n">1</span> Nouveau dossier
+    <button class="nav-tab active" id="tab-fiche" onclick="showPage('fiche')">
+      <span class="tab-n">1</span> Fiche dossier
+    </button>
+    <button class="nav-tab" id="tab-form" onclick="showPage('form')">
+      <span class="tab-n">2</span> Nouveau dossier
     </button>
     <button class="nav-tab" id="tab-gen" onclick="showPage('gen')">
-      <span class="tab-n">2</span> Génération
+      <span class="tab-n">3</span> Génération
     </button>
     <button class="nav-tab" id="tab-report" onclick="showPage('report')">
-      <span class="tab-n">3</span> Pré-rapport
+      <span class="tab-n">4</span> Pré-rapport
     </button>
   </div>
   <div class="nav-right">
@@ -33,9 +36,133 @@
   </div>
 </nav>
 
-<!-- ════════════════════ PAGE 1 — FORMULAIRE ════════════════════ -->
+<!-- ════════════════════ PAGE 0 — FICHE DOSSIER ════════════════════ -->
 <main class="main">
-<div class="page active" id="page-form">
+<div class="page active" id="page-fiche">
+
+  <!-- Logo upload optionnel -->
+  <div class="doc-upload-bar" id="logo-upload-bar">
+    <div class="du-icon">🏛</div>
+    <div style="flex:1">
+      <div class="du-label">
+        Logo Cabinet
+        <button class="tip-btn" data-tip="Optionnel. Uploadez le logo du Cabinet JALTA (PNG ou JPG) pour qu'il apparaisse en haut du devis généré.">?</button>
+      </div>
+      <div class="du-hint">PNG ou JPG — apparaîtra dans l'en-tête du devis</div>
+    </div>
+    <div id="logo-status" class="du-status" style="display:none">✓ Logo chargé</div>
+    <label class="btn btn-glass btn-sm" style="cursor:pointer">
+      Choisir un logo
+      <input type="file" id="logo-input" accept="image/*" style="display:none" onchange="handleLogoUpload(this)">
+    </label>
+  </div>
+
+  <div class="sec-head">
+    <div class="sec-title">Fiche Dossier</div>
+    <div class="sec-desc">Informations de mission — génère automatiquement un devis Cabinet JALTA.</div>
+  </div>
+
+  <div class="card">
+    <div class="grid2">
+      <div class="field">
+        <div class="field-top">
+          <label>N° dossier <span class="req">*</span></label>
+          <button class="tip-btn" data-tip="Référence unique du dossier. Apparaîtra dans le champ 'Affaire' du devis.">?</button>
+        </div>
+        <input type="text" id="f_num_dossier" placeholder="EXP-2026-001">
+      </div>
+      <div class="field">
+        <div class="field-top">
+          <label>Affaire suivie par <span class="req">*</span></label>
+          <button class="tip-btn" data-tip="Expert signataire du devis. RV = Roméo VULCAIN · CL = Claude LUCE">?</button>
+        </div>
+        <div class="checkbox-group" style="margin-top:6px">
+          <label class="checkbox-item"><input type="radio" name="f_suivi_par" value="RV" checked> RV — Roméo VULCAIN</label>
+          <label class="checkbox-item"><input type="radio" name="f_suivi_par" value="CL"> CL — Claude LUCE</label>
+        </div>
+      </div>
+      <div class="field">
+        <div class="field-top">
+          <label>Ordonnateur</label>
+          <button class="tip-btn" data-tip="Nom complet du client (ex : Monsieur DUPONT Jean). Apparaîtra en en-tête du devis.">?</button>
+        </div>
+        <input type="text" id="f_ordonnateur" placeholder="Monsieur DUPONT Jean">
+      </div>
+      <div class="field">
+        <div class="field-top">
+          <label>Email ordonnateur</label>
+        </div>
+        <input type="email" id="f_email" placeholder="email@domaine.fr">
+      </div>
+      <div class="field">
+        <div class="field-top">
+          <label>Objet de la mission <span class="req">*</span></label>
+          <button class="tip-btn" data-tip="Type de valeur à déterminer — apparaîtra dans la section MISSION du devis.">?</button>
+        </div>
+        <select id="f_objet">
+          <option value="VALEUR VENALE">Valeur Vénale</option>
+          <option value="VALEUR LOCATIVE">Valeur Locative</option>
+          <option value="VALEUR D'ASSURANCE">Valeur d'assurance</option>
+          <option value="VALEUR LIQUIDATIVE">Valeur Liquidative</option>
+        </select>
+      </div>
+      <div class="field">
+        <div class="field-top">
+          <label>Lieu</label>
+          <button class="tip-btn" data-tip="Adresse ou localisation du bien expertisé.">?</button>
+        </div>
+        <input type="text" id="f_lieu" placeholder="03 rue VINCENT, Le Robert 97231">
+      </div>
+      <div class="field">
+        <div class="field-top">
+          <label>Date de visite</label>
+        </div>
+        <input type="date" id="f_visite" onchange="updateDateButoir()">
+      </div>
+      <div class="field">
+        <div class="field-top">
+          <label>Date butoir <span style="font-size:10px;color:var(--text3)">(15 j. ouvrés — auto)</span></label>
+          <button class="tip-btn" data-tip="Calculée automatiquement : 15 jours ouvrés après la date de visite. Modifiable si besoin.">?</button>
+        </div>
+        <input type="date" id="f_date_butoir">
+      </div>
+      <div class="field">
+        <div class="field-top">
+          <label>Honoraires TTC (€)</label>
+          <button class="tip-btn" data-tip="Montant TTC toutes taxes comprises (TVA 8.5 % incluse). Ex : 820">?</button>
+        </div>
+        <input type="number" id="f_honoraires" placeholder="820" min="0" step="10" oninput="updateHonorairesLettres()">
+      </div>
+      <div class="field">
+        <div class="field-top">
+          <label>Montant en lettres <span style="font-size:10px;color:var(--text3)">(auto)</span></label>
+        </div>
+        <input type="text" id="f_honoraires_lettres" placeholder="HUIT CENT VINGT" style="text-transform:uppercase" readonly>
+      </div>
+    </div>
+    <div class="field">
+      <div class="field-top">
+        <label>Description du bien — section CONCERNE</label>
+        <button class="tip-btn" data-tip="Texte qui apparaîtra dans la section CONCERNE du devis. Décrivez précisément le bien : 'Un ensemble immobilier comprenant un terrain référencé section N n° 608 sis [adresse] sur lequel repose une maison individuelle...'">?</button>
+      </div>
+      <textarea id="f_description_bien" style="min-height:80px" placeholder="Un ensemble immobilier comprenant un terrain référencé section N n° 608 sis [adresse] sur lequel repose une maison individuelle, des aménagements extérieurs et abords dans l'enceinte du terrain."></textarea>
+    </div>
+  </div>
+
+  <div class="form-nav" style="justify-content:flex-end;gap:12px">
+    <button class="btn btn-glass btn-lg" id="btn-fiche" onclick="generateFiche()">
+      Générer la fiche dossier
+    </button>
+    <button class="btn btn-gold btn-lg" id="btn-devis" onclick="generateDevis()">
+      ✦ Générer le devis .docx
+    </button>
+  </div>
+
+</div><!-- /page-fiche -->
+
+
+<!-- ════════════════════ PAGE 1 — FORMULAIRE ════════════════════ -->
+<div class="page" id="page-form">
 
   <!-- Upload base de connaissance -->
   <div class="doc-upload-bar" id="doc-upload-bar">
@@ -222,6 +349,7 @@
             <option>Maison individuelle</option>
             <option>Appartement</option>
             <option>Terrain à bâtir</option>
+            <option>Terrain nu</option>
             <option>Terrain agricole / naturel</option>
             <option>Bureau / Local professionnel</option>
             <option>Local commercial</option>
@@ -302,6 +430,23 @@
           <textarea id="notes_bien" placeholder="Observations générales lors de la visite, particularités, points à noter…"></textarea>
         </div>
       </div>
+      <div class="field" style="margin-top:12px">
+        <div class="field-top">
+          <label>Documents mis à disposition</label>
+          <button class="tip-btn" data-tip="Cochez les documents fournis par le donneur d'ordre lors de la visite. Ils apparaîtront dans la Section II § 4 du rapport.">?</button>
+        </div>
+        <div class="checkbox-group" style="display:flex;flex-wrap:wrap;gap:8px;margin-top:6px">
+          <label class="checkbox-item"><input type="checkbox" name="documents_fournis" value="Titre de propriété"> Titre de propriété</label>
+          <label class="checkbox-item"><input type="checkbox" name="documents_fournis" value="Bail"> Bail</label>
+          <label class="checkbox-item"><input type="checkbox" name="documents_fournis" value="Plan de distribution"> Plan de distribution</label>
+          <label class="checkbox-item"><input type="checkbox" name="documents_fournis" value="Permis de construire"> Permis de construire</label>
+          <label class="checkbox-item"><input type="checkbox" name="documents_fournis" value="Plan de division"> Plan de division</label>
+          <label class="checkbox-item"><input type="checkbox" name="documents_fournis" value="Factures travaux"> Factures travaux</label>
+          <label class="checkbox-item"><input type="checkbox" name="documents_fournis" value="Règlement d'urbanisme de la zone"> Règlement d'urbanisme</label>
+          <label class="checkbox-item"><input type="checkbox" name="documents_fournis" value="Plan de Prévention des Risques Naturels (PPR)"> PPR</label>
+          <label class="checkbox-item"><input type="checkbox" name="documents_fournis" value="Photographies des lieux au jour de la visite"> Photos visite</label>
+        </div>
+      </div>
     </div>
     <div class="form-nav">
       <button class="btn btn-glass" onclick="prevStep()">← Retour</button>
@@ -329,14 +474,17 @@
             <label>Forme du terrain</label>
             <button class="tip-btn" data-tip="La forme du terrain influe sur la constructibilité et l'aménagement. Un terrain en L ou irrégulier peut avoir des zones inconstructibles ou des contraintes de prospect.">?</button>
           </div>
-          <select id="forme_terrain">
+          <select id="forme_terrain" onchange="toggleAutreForme(this)">
             <option value="">— Sélectionner —</option>
             <option>Rectangulaire régulier</option>
             <option>Irrégulier</option>
+            <option>Polygonale</option>
+            <option>Trapézoïdale</option>
             <option>En L</option>
             <option>En triangle</option>
             <option>Autre</option>
           </select>
+          <input type="text" id="forme_terrain_autre" placeholder="Préciser la forme du terrain…" style="display:none;margin-top:6px">
         </div>
         <div class="field">
           <div class="field-top">

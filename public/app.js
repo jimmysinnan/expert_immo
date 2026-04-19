@@ -68,7 +68,9 @@ const state = {
     desordres: []
   },
   logo: null,             // Logo extrait du DOCX de référence { data, mimeType }
+  ficheLogo: null,        // Logo uploadé manuellement pour la fiche dossier
   chapter1: '',
+  marche_immobilier: '',
   style: null,
   photoResults: {},
   reportMarkdown: '',
@@ -138,67 +140,93 @@ function handlePhotos(cat, input) {
   }
 }
 
-// ── INIT DÉSORDRES (5 blocs) ──────────────────────────────────────────────────
+// ── DÉSORDRES DYNAMIQUES ──────────────────────────────────────────────────────
+let _desordreCount = 0;
+
+function desordreBlockHTML(n) {
+  return `
+  <div class="card desordre-block" data-d="${n}">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+      <div class="desordre-num">— Désordre ${n} —</div>
+      <button class="btn btn-glass btn-sm" style="color:#c0392b;padding:2px 10px;font-size:13px" onclick="removeDesordre(this)" title="Supprimer ce désordre">✕</button>
+    </div>
+    <div class="grid2">
+      <div class="field">
+        <div class="field-top"><label>Localisation</label></div>
+        <input type="text" data-field="loc" placeholder="Ex : Façade Nord — partie basse, Plafond cuisine RDC…">
+      </div>
+      <div class="field">
+        <div class="field-top"><label>Niveau de gravité</label></div>
+        <select data-field="grav">
+          <option value="">— Sélectionner —</option>
+          <option value="Esthétique">Esthétique</option>
+          <option value="Fonctionnel">Fonctionnel</option>
+          <option value="Structurel">Structurel</option>
+        </select>
+      </div>
+    </div>
+    <div class="field">
+      <div class="field-top"><label>Nature et description précise</label></div>
+      <textarea data-field="nat" style="min-height:60px" placeholder="Décrivez précisément le désordre observé…"></textarea>
+    </div>
+    <div class="field">
+      <div class="field-top"><label>Origine probable</label></div>
+      <input type="text" data-field="orig" placeholder="Ex : Tassement différentiel, infiltration, vétusté…">
+    </div>
+    <div class="field">
+      <div class="field-top"><label>Photo(s) du désordre</label></div>
+      <div class="upload-zone" onclick="this.querySelector('input').click()" style="padding:12px">
+        <label>
+          <div class="upload-label" style="font-size:12px">Photos désordre ${n} — Cliquer pour choisir</div>
+          <div class="upload-hint">1 à 3 photos</div>
+          <div class="upload-count" style="display:none"></div>
+          <input type="file" multiple accept="image/*" onchange="handleDesordrePhotoBlock(this)">
+        </label>
+      </div>
+    </div>
+  </div>`;
+}
+
 function initDesordres() {
+  _desordreCount = 0;
   const container = document.getElementById('desordres-container');
   if (!container) return;
   container.innerHTML = '';
-  for (let i = 1; i <= 5; i++) {
-    container.innerHTML += `
-    <div class="card desordre-block" id="db-${i}" style="${i > 2 ? 'opacity:.6' : ''}">
-      <div class="desordre-num">— Désordre ${i} — <span style="font-size:10px;color:var(--text3);font-weight:400">${i > 2 ? '(laisser vide si non utilisé)' : ''}</span></div>
-      <div class="grid2">
-        <div class="field">
-          <div class="field-top">
-            <label>Localisation</label>
-            <button class="tip-btn" data-tip="Localisation précise du désordre dans le bien : ex. 'Façade Nord partie basse', 'Plafond cuisine RDC', 'Toiture rive droite'. Plus c'est précis, plus le rapport sera fiable.">?</button>
-          </div>
-          <input type="text" id="d${i}_loc" placeholder="Ex : Façade Nord — partie basse, Plafond cuisine RDC…"
-            oninput="${i > 2 ? 'document.getElementById(\"db-'+i+'\").style.opacity=\"1\"' : ''}">
-        </div>
-        <div class="field">
-          <div class="field-top">
-            <label>Niveau de gravité</label>
-            <button class="tip-btn" data-tip="Esthétique : sans impact fonctionnel (fissure cheveu, peinture écaillée). Fonctionnel : gêne d'usage, entretien requis (humidité, gouttière cassée). Structurel : atteinte à la solidité ou à l'habitabilité (fissure lézarde, plancher affaissé).">?</button>
-          </div>
-          <select id="d${i}_grav">
-            <option value="">— Sélectionner —</option>
-            <option value="Esthétique">Esthétique</option>
-            <option value="Fonctionnel">Fonctionnel</option>
-            <option value="Structurel">Structurel</option>
-          </select>
-        </div>
-      </div>
-      <div class="field">
-        <div class="field-top">
-          <label>Nature et description précise</label>
-          <button class="tip-btn" data-tip="Décrivez exactement ce que vous observez : matériau touché, dimensions approximatives, présence d'humidité, couleur… Ex : 'Fissuration horizontale de l'enduit sur 1,20 m au droit du plancher'.">?</button>
-        </div>
-        <textarea id="d${i}_nat" style="min-height:60px" placeholder="Décrivez précisément le désordre observé…"></textarea>
-      </div>
-      <div class="field">
-        <div class="field-top">
-          <label>Origine probable</label>
-          <button class="tip-btn" data-tip="Votre hypothèse sur la cause du désordre. Ex : tassement différentiel, infiltration, vétusté, défaut de conception, reprise en sous-œuvre. En cas de doute, indiquez les causes possibles.">?</button>
-        </div>
-        <input type="text" id="d${i}_orig" placeholder="Ex : Tassement différentiel, infiltration, vétusté…">
-      </div>
-      <div class="field">
-        <div class="field-top">
-          <label>Photo(s) du désordre</label>
-          <button class="tip-btn" data-tip="1 à 3 photos par désordre. Cadrez au plus près pour que l'IA puisse analyser la nature et l'étendue du désordre. Ajoutez une pièce pour l'échelle si possible.">?</button>
-        </div>
-        <div class="upload-zone" id="uz-d${i}" onclick="document.getElementById('photos-d${i}').click()" style="padding:12px">
-          <label>
-            <div class="upload-label" style="font-size:12px">Photos désordre ${i} — Cliquer pour choisir</div>
-            <div class="upload-hint">1 à 3 photos</div>
-            <div class="upload-count" id="count-d${i}" style="display:none"></div>
-            <input type="file" id="photos-d${i}" multiple accept="image/*" onchange="handleDesordrePhoto(${i}, this)">
-          </label>
-        </div>
-      </div>
-    </div>`;
+  addDesordre();
+  // Bouton +
+  const addBtn = document.createElement('div');
+  addBtn.style.cssText = 'text-align:center;margin:12px 0';
+  addBtn.innerHTML = `<button class="btn btn-navy" onclick="addDesordre()" style="gap:6px">+ Ajouter un désordre</button>`;
+  container.after(addBtn);
+}
+
+function addDesordre() {
+  _desordreCount++;
+  const container = document.getElementById('desordres-container');
+  if (!container) return;
+  const div = document.createElement('div');
+  div.innerHTML = desordreBlockHTML(_desordreCount);
+  container.appendChild(div.firstElementChild);
+}
+
+function removeDesordre(btn) {
+  const block = btn.closest('.desordre-block');
+  if (document.querySelectorAll('.desordre-block').length <= 1) {
+    block.querySelectorAll('input[type="text"], textarea').forEach(el => el.value = '');
+    block.querySelectorAll('select').forEach(el => el.selectedIndex = 0);
+    return;
   }
+  block.remove();
+}
+
+function handleDesordrePhotoBlock(input) {
+  if (!input.files?.length) return;
+  const files = Array.from(input.files);
+  state.photos.desordres.push(...files);
+  const uz = input.closest('.upload-zone');
+  const count = uz?.querySelector('.upload-count');
+  if (uz) uz.classList.add('has-files');
+  if (count) { count.style.display = 'block'; count.textContent = files.length + ' photo(s)'; }
 }
 
 function handleDesordrePhoto(i, input) {
@@ -246,17 +274,21 @@ function collectFormData() {
   const get = id => (document.getElementById(id)?.value || '').trim();
   const checks = name => Array.from(document.querySelectorAll(`input[name="${name}"]:checked`)).map(c => c.value).join(', ');
 
-  // Désordres
+  // Désordres (blocs dynamiques)
   let desordresText = '';
-  for (let i = 1; i <= 5; i++) {
-    const loc = get(`d${i}_loc`);
-    const nat = get(`d${i}_nat`);
-    if (!loc && !nat) continue;
-    desordresText += `**Désordre ${i} — ${loc || '[localisation à compléter]'}**\n`;
+  let dIdx = 0;
+  document.querySelectorAll('.desordre-block').forEach(block => {
+    const loc = (block.querySelector('[data-field="loc"]')?.value || '').trim();
+    const nat = (block.querySelector('[data-field="nat"]')?.value || '').trim();
+    const grav = (block.querySelector('[data-field="grav"]')?.value || '').trim();
+    const orig = (block.querySelector('[data-field="orig"]')?.value || '').trim();
+    if (!loc && !nat) return;
+    dIdx++;
+    desordresText += `**Désordre ${dIdx} — ${loc || '[localisation à compléter]'}**\n`;
     desordresText += `Nature : ${nat || '[à compléter]'}\n`;
-    desordresText += `Gravité : ${get(`d${i}_grav`) || '[à compléter]'}\n`;
-    desordresText += `Origine probable : ${get(`d${i}_orig`) || '[à compléter]'}\n\n`;
-  }
+    desordresText += `Gravité : ${grav || '[à compléter]'}\n`;
+    desordresText += `Origine probable : ${orig || '[à compléter]'}\n\n`;
+  });
 
   // Surfaces
   let surfacesText = '';
@@ -289,7 +321,7 @@ function collectFormData() {
     annexes: checks('annexes'),
     notes_bien: get('notes_bien'),
     superficie_terrain: get('superficie_terrain'),
-    forme_terrain: get('forme_terrain'),
+    forme_terrain: get('forme_terrain') === 'Autre' ? (get('forme_terrain_autre') || 'Autre') : get('forme_terrain'),
     topographie: get('topographie'),
     orientation: get('orientation'),
     acces_terrain: get('acces_terrain'),
@@ -315,6 +347,7 @@ function collectFormData() {
     surfaces_array: surfacesArray,
     situation_locative: get('situation_locative'),
     assainissement: get('assainissement'),
+    documents_fournis: Array.from(document.querySelectorAll('input[name="documents_fournis"]:checked')).map(c => c.value).join(', '),
   };
 }
 
@@ -344,6 +377,7 @@ async function startGeneration() {
     try {
       const r1 = await fetchJSON('/api/chapter1', { adresse: formData.adresse_bien });
       state.chapter1 = r1.text || '';
+      state.marche_immobilier = r1.marche_immobilier || '';
       updateDetail(1, 'Chapitre 1 généré ✓');
       setStep(1, 'done');
     } catch (e) {
@@ -427,6 +461,10 @@ async function startGeneration() {
     };
     const r4 = await fetchJSON('/api/generate', payload);
     state.reportMarkdown = r4.report || '';
+    // Injecter marche_immobilier depuis chapter1 dans les sections
+    if (r4.sections) {
+      r4.sections.marche_immobilier = r4.sections.marche_immobilier || state.marche_immobilier || '';
+    }
     state.sections = r4.sections || null;
     updateDetail(4, 'Rapport rédigé ✓');
     setStep(4, 'done');
@@ -620,7 +658,8 @@ async function downloadDocx() {
         formData: state.formData,
         refDossier: state.formData.ref_dossier || 'PreRapport',
         photos64: state.photos64,
-        logo: state.logo
+        logo: state.logo,
+        photoResults: state.photoResults
       })
     });
     if (!res.ok) throw new Error('Export échoué');
@@ -670,13 +709,182 @@ function toast(msg, duration = 3500) {
   toastTimer = setTimeout(() => t.classList.remove('show'), duration);
 }
 
+// ── FICHE DOSSIER ─────────────────────────────────────────────────────────────
+
+function toggleAutreForme(select) {
+  const autre = document.getElementById('forme_terrain_autre');
+  if (!autre) return;
+  autre.style.display = select.value === 'Autre' ? 'block' : 'none';
+  if (select.value !== 'Autre') autre.value = '';
+}
+
+function handleLogoUpload(input) {
+  if (!input.files?.[0]) return;
+  fileToBase64(input.files[0]).then(b64 => {
+    state.ficheLogo = b64;
+    const status = document.getElementById('logo-status');
+    if (status) { status.style.display = 'block'; status.textContent = '✓ ' + input.files[0].name; }
+    toast('Logo chargé');
+  });
+}
+
+function addWorkingDays(date, days) {
+  let count = 0;
+  const d = new Date(date);
+  while (count < days) {
+    d.setDate(d.getDate() + 1);
+    const day = d.getDay();
+    if (day !== 0 && day !== 6) count++;
+  }
+  return d;
+}
+
+function updateDateButoir() {
+  const visiteVal = document.getElementById('f_visite')?.value;
+  if (!visiteVal) return;
+  const butoir = addWorkingDays(new Date(visiteVal), 15);
+  const el = document.getElementById('f_date_butoir');
+  if (el) el.value = butoir.toISOString().slice(0, 10);
+}
+
+function amountToWordsFr(n) {
+  const ones = ['', 'UN', 'DEUX', 'TROIS', 'QUATRE', 'CINQ', 'SIX', 'SEPT', 'HUIT', 'NEUF',
+    'DIX', 'ONZE', 'DOUZE', 'TREIZE', 'QUATORZE', 'QUINZE', 'SEIZE', 'DIX-SEPT', 'DIX-HUIT', 'DIX-NEUF'];
+
+  function tens(x) {
+    if (x < 20) return ones[x];
+    const t = Math.floor(x / 10), u = x % 10;
+    if (t === 2) return u ? 'VINGT-' + ones[u] : 'VINGT';
+    if (t === 3) return u ? 'TRENTE-' + ones[u] : 'TRENTE';
+    if (t === 4) return u ? 'QUARANTE-' + ones[u] : 'QUARANTE';
+    if (t === 5) return u ? 'CINQUANTE-' + ones[u] : 'CINQUANTE';
+    if (t === 6) return u ? 'SOIXANTE-' + ones[u] : 'SOIXANTE';
+    if (t === 7) return 'SOIXANTE-' + ones[10 + u];
+    if (t === 8) return u ? 'QUATRE-VINGT-' + ones[u] : 'QUATRE-VINGTS';
+    if (t === 9) return 'QUATRE-VINGT-' + ones[10 + u];
+    return '';
+  }
+
+  function hundreds(x) {
+    if (x < 100) return tens(x);
+    const h = Math.floor(x / 100), r = x % 100;
+    const pre = h === 1 ? 'CENT' : ones[h] + ' CENT';
+    return r ? pre + ' ' + tens(r) : (h > 1 ? pre + 'S' : pre);
+  }
+
+  if (!n) return 'ZÉRO';
+  if (n < 1000) return hundreds(n);
+  const k = Math.floor(n / 1000), r = n % 1000;
+  const pre = k === 1 ? 'MILLE' : hundreds(k) + ' MILLE';
+  return r ? pre + ' ' + hundreds(r) : pre;
+}
+
+function updateHonorairesLettres() {
+  const val = parseFloat(document.getElementById('f_honoraires')?.value || '0');
+  const el = document.getElementById('f_honoraires_lettres');
+  if (el) el.value = val ? amountToWordsFr(Math.round(val)) : '';
+}
+
+async function generateFiche() {
+  const get = id => (document.getElementById(id)?.value || '').trim();
+  const suiviPar = document.querySelector('input[name="f_suivi_par"]:checked')?.value || 'RV';
+
+  const data = {
+    num_dossier: get('f_num_dossier') || 'EXP-2026-XXX',
+    suivi_par: suiviPar,
+    ordonnateur: get('f_ordonnateur'),
+    email_ord: get('f_email'),
+    objet: get('f_objet') || 'VALEUR VENALE',
+    lieu: get('f_lieu'),
+    description_bien: get('f_description_bien'),
+    date_visite: get('f_visite'),
+    date_butoir: get('f_date_butoir'),
+    logo: state.ficheLogo || state.logo || null
+  };
+
+  const btn = document.getElementById('btn-fiche');
+  if (btn) { btn.textContent = '⏳ Génération…'; btn.disabled = true; }
+
+  try {
+    const res = await fetch('/api/generate-fiche', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
+    });
+    if (!res.ok) throw new Error('Erreur serveur');
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    const cd = res.headers.get('Content-Disposition') || '';
+    const fn = cd.match(/filename="([^"]+)"/)?.[1] || 'Fiche.docx';
+    a.download = fn;
+    a.click();
+    URL.revokeObjectURL(url);
+    toast('✓ ' + fn + ' téléchargé');
+  } catch (e) {
+    toast('Erreur fiche : ' + e.message);
+  } finally {
+    if (btn) { btn.textContent = 'Générer la fiche dossier'; btn.disabled = false; }
+  }
+}
+
+async function generateDevis() {
+  const get = id => (document.getElementById(id)?.value || '').trim();
+  const suiviPar = document.querySelector('input[name="f_suivi_par"]:checked')?.value || 'RV';
+
+  const data = {
+    num_dossier: get('f_num_dossier') || 'EXP-2026-XXX',
+    suivi_par: suiviPar,
+    ordonnateur: get('f_ordonnateur'),
+    email_ord: get('f_email'),
+    objet: get('f_objet') || 'VALEUR VENALE',
+    lieu: get('f_lieu'),
+    description_bien: get('f_description_bien'),
+    honoraires_ttc: get('f_honoraires') || '0',
+    date_visite: get('f_visite'),
+    date_butoir: get('f_date_butoir'),
+    logo: state.ficheLogo || state.logo || null
+  };
+
+  const btn = document.getElementById('btn-devis');
+  if (btn) { btn.textContent = '⏳ Génération…'; btn.disabled = true; }
+
+  try {
+    const res = await fetch('/api/generate-devis', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
+    });
+    if (!res.ok) throw new Error('Erreur serveur');
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    const cd = res.headers.get('Content-Disposition') || '';
+    const fn = cd.match(/filename="([^"]+)"/)?.[1] || 'Devis.docx';
+    a.download = fn;
+    a.click();
+    URL.revokeObjectURL(url);
+    toast('✓ ' + fn + ' téléchargé');
+  } catch (e) {
+    toast('Erreur devis : ' + e.message);
+  } finally {
+    if (btn) { btn.textContent = '✦ Générer le devis .docx'; btn.disabled = false; }
+  }
+}
+
 // ── INIT ──────────────────────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
+  showPage('fiche');
   goStep(0);
   initDesordres();
   initSurfaces();
 
-  // Date par défaut = aujourd'hui
+  // Date par défaut = aujourd'hui pour formulaire et fiche
+  const today = new Date().toISOString().slice(0, 10);
   const dv = document.getElementById('date_visite');
-  if (dv) dv.value = new Date().toISOString().slice(0, 10);
+  if (dv) dv.value = today;
+  const fv = document.getElementById('f_visite');
+  if (fv) { fv.value = today; updateDateButoir(); }
 });
