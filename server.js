@@ -923,6 +923,7 @@ function buildMateriauxTable(fd, photoResults = {}) {
   const facades_etat = fd.etat_facades || ext.facades_etat || '[à compléter]';
   const menus_mat = fd.menuiseries_ext || ext.menuiseries_materiau || '[à compléter]';
   const sols_mat = fd.sols_interieurs || int.sols_type || '[à rajouter par l\'expert]';
+  const murs_mat = fd.revetements_murs || int.murs_revetement || '[à rajouter par l\'expert]';
   const elec_etat = fd.etat_electrique || int.electricite_obs || '[à compléter]';
 
   const corps = [
@@ -931,6 +932,7 @@ function buildMateriauxTable(fd, photoResults = {}) {
     ['Façades / Enduits', facades_mat, facades_etat],
     ['Menuiseries extérieures', menus_mat, '—'],
     ['Revêtements de sols', sols_mat, '—'],
+    ['Revêtements muraux', murs_mat, '—'],
     ['Plomberie / Sanitaires', '—', fd.etat_plomberie || '[à compléter]'],
     ['Installation électrique', '—', elec_etat],
     ['Chauffage / Climatisation', fd.chauffage || 'Néant (climat tropical)', '—'],
@@ -1888,18 +1890,22 @@ async function generateFicheDocx(data) {
   const SEP = { style: BorderStyle.SINGLE, size: 2, color: 'C8D8E8' };
   const cellBorders = { top: nb, bottom: SEP, left: nb, right: nb, insideH: nb, insideV: nb };
 
+  // ShadingType.CLEAR = fond coloré sans motif (compatible docx library)
+  const shadeLabel = { fill: CELL_LABEL_BG, type: ShadingType.CLEAR, color: 'auto' };
+  const shadeValue = { fill: CELL_VALUE_BG, type: ShadingType.CLEAR, color: 'auto' };
+
   const coverRow = (label, value) => new TableRow({
     children: [
       new TableCell({
         width: { size: 38, type: WidthType.PERCENTAGE },
-        shading: { fill: CELL_LABEL_BG, type: ShadingType.SOLID },
+        shading: shadeLabel,
         borders: cellBorders,
         margins: { top: 60, bottom: 60, left: 120, right: 120 },
         children: [p(label, { children: [t(label, { bold: true, color: '1A1A1A' })] })]
       }),
       new TableCell({
         width: { size: 62, type: WidthType.PERCENTAGE },
-        shading: { fill: CELL_VALUE_BG, type: ShadingType.SOLID },
+        shading: shadeValue,
         borders: cellBorders,
         margins: { top: 60, bottom: 60, left: 120, right: 120 },
         children: [p(value || '[à compléter]', { children: [t(value || '[à compléter]', { color: value ? '1A1A1A' : C.AMBER })] })]
@@ -1911,14 +1917,14 @@ async function generateFicheDocx(data) {
     children: [
       new TableCell({
         width: { size: 38, type: WidthType.PERCENTAGE },
-        shading: { fill: CELL_LABEL_BG, type: ShadingType.SOLID },
+        shading: shadeLabel,
         borders: cellBorders,
         margins: { top: 70, bottom: 70, left: 120, right: 120 },
         children: [new Paragraph({ children: [new TextRun({ text: label, bold: true, size: 19, font: 'Times New Roman', color: '1A1A1A' })], spacing: { before: 40, after: 40 } })]
       }),
       new TableCell({
         width: { size: 62, type: WidthType.PERCENTAGE },
-        shading: { fill: CELL_VALUE_BG, type: ShadingType.SOLID },
+        shading: shadeValue,
         borders: cellBorders,
         margins: { top: 70, bottom: 70, left: 120, right: 120 },
         children: [new Paragraph({ children: [new TextRun({ text: value || '[à compléter]', size: 19, font: 'Times New Roman', color: value ? '1A1A1A' : C.AMBER })], spacing: { before: 40, after: 40 } })]
@@ -1977,12 +1983,12 @@ async function generateFicheDocx(data) {
       borders: noB,
       rows: [new TableRow({
         children: [new TableCell({
-          shading: { fill: 'D9D9D9', type: ShadingType.SOLID },
-          borders: noB,
+          shading: { fill: 'EEF4FA', type: ShadingType.CLEAR, color: 'auto' },
+          borders: { top: { style: BorderStyle.SINGLE, size: 2, color: 'C8D8E8' }, bottom: { style: BorderStyle.SINGLE, size: 2, color: 'C8D8E8' }, left: nb, right: nb },
           margins: { top: 200, bottom: 200, left: 0, right: 0 },
           children: [new Paragraph({
             alignment: AlignmentType.CENTER,
-            children: [new TextRun({ text: '[PHOTO DU BIEN]', size: 22, font: 'Times New Roman', color: '888888', italics: true })]
+            children: [new TextRun({ text: '[PHOTO DU BIEN]', size: 22, font: 'Times New Roman', color: 'AABDCC', italics: true })]
           })]
         })]
       })]

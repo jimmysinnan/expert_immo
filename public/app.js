@@ -348,6 +348,7 @@ function collectFormData() {
     etat_electrique: get('etat_electrique'),
     etat_plomberie: get('etat_plomberie'),
     sols_interieurs: get('sols_interieurs'),
+    revetements_murs: get('revetements_murs'),
     notes_bati: get('notes_bati'),
     desordres: desordresText,
     surfaces: surfacesText,
