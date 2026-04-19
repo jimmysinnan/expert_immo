@@ -320,6 +320,13 @@ function collectFormData() {
     sous_sol: get('sous_sol'),
     annexes: checks('annexes'),
     notes_bien: get('notes_bien'),
+    // Appartement / Immeuble
+    appart_etage: get('appart_etage'),
+    appart_type_pieces: get('appart_type_pieces'),
+    copro_type: get('copro_type'),
+    copro_nb_batiments: get('copro_nb_batiments'),
+    copro_composition: get('copro_composition'),
+    copro_tantiemes: get('copro_tantiemes'),
     superficie_terrain: get('superficie_terrain'),
     forme_terrain: get('forme_terrain') === 'Autre' ? (get('forme_terrain_autre') || 'Autre') : get('forme_terrain'),
     topographie: get('topographie'),
@@ -710,6 +717,16 @@ function toast(msg, duration = 3500) {
 }
 
 // ── FICHE DOSSIER ─────────────────────────────────────────────────────────────
+
+function toggleCopropriete(select) {
+  const bloc = document.getElementById('bloc-copropriete');
+  const blocAppart = document.getElementById('bloc-appart-only');
+  if (!bloc) return;
+  const val = select.value;
+  const showBloc = val === 'Appartement' || val === 'Immeuble';
+  bloc.style.display = showBloc ? 'block' : 'none';
+  if (blocAppart) blocAppart.style.display = val === 'Appartement' ? 'contents' : 'none';
+}
 
 function toggleAutreForme(select) {
   const autre = document.getElementById('forme_terrain_autre');

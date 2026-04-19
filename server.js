@@ -182,6 +182,15 @@ DPE : Classe ${formData.dpe_classe || 'NC'} — GES : Classe ${formData.ges_clas
 Type de bien : ${formData.type_bien}
 Année de construction : ${formData.annee_construction || '[à rajouter par l\'expert]'}
 Niveaux : ${formData.nb_niveaux || '[à rajouter par l\'expert]'}
+${(formData.type_bien === 'Appartement' || formData.type_bien === 'Immeuble') ? `
+=== COPROPRIÉTÉ ===
+${formData.appart_etage ? `Étage : ${formData.appart_etage}` : ''}
+${formData.appart_type_pieces ? `Type / Pièces : ${formData.appart_type_pieces}` : ''}
+Type de copropriété : ${formData.copro_type || '[à compléter]'}
+Nombre de bâtiments : ${formData.copro_nb_batiments || '[à compléter]'}
+Composition des bâtiments : ${formData.copro_composition || '[à compléter]'}
+Tantièmes parties communes générales détenus : ${formData.copro_tantiemes || '[à compléter]'}
+` : ''}
 
 === TERRAIN ===
 Superficie : ${formData.superficie_terrain} m²
@@ -233,7 +242,7 @@ GÉNÈRE UN JSON avec exactement ces clés (UNIQUEMENT le JSON, sans markdown ni
   "situation_juridique": "Texte SITUATION JURIDIQUE — INTÉGRER OBLIGATOIREMENT la référence cadastrale '${formData.refs_cadastrales || '[référence à compléter]'}' dans le texte. Exemple d'ouverture : 'Le bien est cadastré sous la référence ${formData.refs_cadastrales || '[à compléter]'}...'. Mentionner le régime juridique (${formData.regime_juridique || '[à compléter]'}), la superficie du terrain (${formData.superficie_terrain || '[à compléter]'} m²), les mentions hypothécaires si connues — 3 à 5 phrases style JALTA.",
   "situation_locative_text": "Texte SITUATION LOCATIVE : si libre d'occupation ou occupé, conditions de l'occupation, incidence sur la valeur — 2 à 4 phrases. Si libre : le préciser clairement.",
   "description_terrain": "Texte section LE TERRAIN D\\'ASSIETTE — au moins 150 mots — style JALTA factuel. Inclure OBLIGATOIREMENT : surface (${formData.superficie_terrain || '[à compléter]'} m²), forme (${formData.forme_terrain || '[à compléter]'}), topographie, accès, clôtures, réseaux, zonage PLU (${formData.zonage_plu || '[à compléter]'}). Inclure OBLIGATOIREMENT la phrase sur l\\'assainissement : 'L\\'assainissement du bien est assuré par ${formData.assainissement || '[à compléter]'}.' Si servitude : mentionner. NE PAS mentionner le PPR. NE PAS écrire 'à l\\'examen visuel des photographies'.",
-  "description_bati": "Texte section LA CONSTRUCTION — au moins 200 mots — style JALTA : 'Il s'agit d'un bâtiment en dur...', structure, toiture, façades, menuiseries, équipements (électricité, plomberie, chauffage), DPE. NE PAS mentionner les surfaces des pièces dans ce texte — elles figurent dans le tableau. NE PAS écrire 'à l'examen visuel des photographies'. Décrire uniquement la distribution fonctionnelle (nombre de niveaux, pièces principales) sans détailler les m².",
+  "description_bati": "Texte section LA CONSTRUCTION — au moins 200 mots — style JALTA : 'Il s'agit d'un bâtiment en dur...', structure, toiture, façades, menuiseries, équipements (électricité, plomberie, chauffage), DPE. NE PAS mentionner les surfaces des pièces dans ce texte — elles figurent dans le tableau. NE PAS écrire 'à l'examen visuel des photographies'. Décrire uniquement la distribution fonctionnelle (nombre de niveaux, pièces principales) sans détailler les m².${(formData.type_bien === 'Appartement') ? ` Pour l'appartement : mentionner l'étage (${formData.appart_etage || '[à compléter]'}), le type (${formData.appart_type_pieces || '[à compléter]'}), et la copropriété (${formData.copro_type || '[à compléter]'}, ${formData.copro_nb_batiments || '[à compléter]'} bâtiment(s), tantièmes : ${formData.copro_tantiemes || '[à compléter]'}).` : (formData.type_bien === 'Immeuble') ? ` Pour l'immeuble : décrire la copropriété (${formData.copro_type || '[à compléter]'}), composition : ${formData.copro_composition || '[à compléter]'}, tantièmes : ${formData.copro_tantiemes || '[à compléter]'}.` : ''}",
   "desordres_texte": "Texte section ÉTAT DES LIEUX — liste tous les désordres constatés en style JALTA avec conditionnel. NE PAS écrire 'à l'examen visuel des photographies' — formuler directement les observations. Si aucun désordre : 'Au jour de notre visite, aucun désordre significatif n'a été constaté.'",
   "jugement_favorable": ["Point favorable 1", "Point favorable 2", "..."],
   "jugement_defavorable": ["Point défavorable 1", "Point défavorable 2", "..."],
@@ -1874,21 +1883,26 @@ async function generateFicheDocx(data) {
   });
   const t = (text, opts = {}) => new TextRun({ text: String(text || ''), size: 20, font: 'Times New Roman', ...opts });
 
+  const CELL_LABEL_BG = 'D6E8F7';  // bleu clair
+  const CELL_VALUE_BG = 'F4F6F8';  // gris très clair
+  const SEP = { style: BorderStyle.SINGLE, size: 2, color: 'C8D8E8' };
+  const cellBorders = { top: nb, bottom: SEP, left: nb, right: nb, insideH: nb, insideV: nb };
+
   const coverRow = (label, value) => new TableRow({
     children: [
       new TableCell({
         width: { size: 38, type: WidthType.PERCENTAGE },
-        shading: { fill: 'E8EDF2', type: ShadingType.SOLID },
-        borders: { bottom: { style: BorderStyle.SINGLE, size: 2, color: 'FFFFFF' }, top: nb, left: nb, right: nb },
+        shading: { fill: CELL_LABEL_BG, type: ShadingType.SOLID },
+        borders: cellBorders,
         margins: { top: 60, bottom: 60, left: 120, right: 120 },
-        children: [p(label, { children: [t(label, { bold: true, color: C.NAVY })] })]
+        children: [p(label, { children: [t(label, { bold: true, color: '1A1A1A' })] })]
       }),
       new TableCell({
         width: { size: 62, type: WidthType.PERCENTAGE },
-        shading: { fill: 'F5F6F7', type: ShadingType.SOLID },
-        borders: { bottom: { style: BorderStyle.SINGLE, size: 2, color: 'FFFFFF' }, top: nb, left: nb, right: nb },
+        shading: { fill: CELL_VALUE_BG, type: ShadingType.SOLID },
+        borders: cellBorders,
         margins: { top: 60, bottom: 60, left: 120, right: 120 },
-        children: [p(value || '[à compléter]', { children: [t(value || '[à compléter]', { color: value ? C.DARK : C.AMBER })] })]
+        children: [p(value || '[à compléter]', { children: [t(value || '[à compléter]', { color: value ? '1A1A1A' : C.AMBER })] })]
       })
     ]
   });
@@ -1897,20 +1911,17 @@ async function generateFicheDocx(data) {
     children: [
       new TableCell({
         width: { size: 38, type: WidthType.PERCENTAGE },
-        shading: { fill: 'E8EDF2', type: ShadingType.SOLID },
-        borders: { bottom: { style: BorderStyle.SINGLE, size: 2, color: 'FFFFFF' }, top: nb, left: nb, right: nb },
+        shading: { fill: CELL_LABEL_BG, type: ShadingType.SOLID },
+        borders: cellBorders,
         margins: { top: 70, bottom: 70, left: 120, right: 120 },
-        children: [new Paragraph({ children: [new TextRun({ text: label, bold: true, size: 19, font: 'Times New Roman', color: C.NAVY })], spacing: { before: 40, after: 40 } })]
+        children: [new Paragraph({ children: [new TextRun({ text: label, bold: true, size: 19, font: 'Times New Roman', color: '1A1A1A' })], spacing: { before: 40, after: 40 } })]
       }),
       new TableCell({
         width: { size: 62, type: WidthType.PERCENTAGE },
-        shading: { fill: 'FAFAFA', type: ShadingType.SOLID },
-        borders: {
-          bottom: { style: BorderStyle.SINGLE, size: 2, color: 'DDDDDD' },
-          top: nb, left: nb, right: nb
-        },
+        shading: { fill: CELL_VALUE_BG, type: ShadingType.SOLID },
+        borders: cellBorders,
         margins: { top: 70, bottom: 70, left: 120, right: 120 },
-        children: [new Paragraph({ children: [new TextRun({ text: value || '[à compléter]', size: 19, font: 'Times New Roman', color: value ? C.DARK : C.AMBER })], spacing: { before: 40, after: 40 } })]
+        children: [new Paragraph({ children: [new TextRun({ text: value || '[à compléter]', size: 19, font: 'Times New Roman', color: value ? '1A1A1A' : C.AMBER })], spacing: { before: 40, after: 40 } })]
       })
     ]
   });

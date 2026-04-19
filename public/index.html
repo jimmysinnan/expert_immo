@@ -344,10 +344,11 @@
             <label>Type de bien <span class="req">*</span></label>
             <button class="tip-btn" data-tip="Le type de bien détermine la structure du rapport. Une maison individuelle aura un chapitre terrain détaillé, un appartement aura un chapitre copropriété, un terrain nu aura uniquement les chapitres 1 et 2.">?</button>
           </div>
-          <select id="type_bien">
+          <select id="type_bien" onchange="toggleCopropriete(this)">
             <option value="">— Sélectionner —</option>
             <option>Maison individuelle</option>
             <option>Appartement</option>
+            <option>Immeuble</option>
             <option>Terrain à bâtir</option>
             <option>Terrain nu</option>
             <option>Terrain agricole / naturel</option>
@@ -355,6 +356,69 @@
             <option>Local commercial</option>
           </select>
         </div>
+        <!-- ── Bloc Appartement / Immeuble (conditionnel) ── -->
+        <div id="bloc-copropriete" style="display:none;grid-column:1/-1">
+          <div class="grid2" style="margin-bottom:0">
+
+            <!-- Champs Appartement uniquement -->
+            <div id="bloc-appart-only" style="display:contents">
+              <div class="field">
+                <div class="field-top">
+                  <label>Étage</label>
+                  <button class="tip-btn" data-tip="Ex : 2ème étage, RDC, Dernier étage. Mentionné dans la description de l'appartement.">?</button>
+                </div>
+                <input type="text" id="appart_etage" placeholder="ex : 2ème étage, RDC, Dernier étage">
+              </div>
+              <div class="field">
+                <div class="field-top">
+                  <label>Type / Nombre de pièces</label>
+                  <button class="tip-btn" data-tip="Studio = 1 pièce principale. T2 = 2 pièces, etc. Hors cuisine et salle de bain.">?</button>
+                </div>
+                <select id="appart_type_pieces">
+                  <option value="">— Sélectionner —</option>
+                  <option>Studio (T1)</option>
+                  <option>T2 — 2 pièces</option>
+                  <option>T3 — 3 pièces</option>
+                  <option>T4 — 4 pièces</option>
+                  <option>T5 — 5 pièces</option>
+                  <option>T6 et plus</option>
+                  <option>Autre</option>
+                </select>
+              </div>
+            </div>
+
+            <!-- Copropriété — commun Appartement + Immeuble -->
+            <div class="field">
+              <div class="field-top">
+                <label>Type de copropriété</label>
+                <button class="tip-btn" data-tip="Ex : Copropriété horizontale, verticale, syndicat de copropriétaires, ASL, AFUL...">?</button>
+              </div>
+              <input type="text" id="copro_type" placeholder="ex : Copropriété verticale de standing">
+            </div>
+            <div class="field">
+              <div class="field-top">
+                <label>Nombre de bâtiments</label>
+                <button class="tip-btn" data-tip="Nombre total de bâtiments composant la copropriété.">?</button>
+              </div>
+              <input type="number" id="copro_nb_batiments" placeholder="ex : 3" min="1">
+            </div>
+            <div class="field" style="grid-column:1/-1">
+              <div class="field-top">
+                <label>Composition de chaque bâtiment</label>
+                <button class="tip-btn" data-tip="Ex : Bâtiment A — R+4, 20 logements. Bâtiment B — R+2, 10 logements.">?</button>
+              </div>
+              <textarea id="copro_composition" style="min-height:60px" placeholder="Bâtiment A — R+4, 20 appartements&#10;Bâtiment B — R+2, 10 appartements"></textarea>
+            </div>
+            <div class="field">
+              <div class="field-top">
+                <label>Tantièmes de parties communes générales détenus</label>
+                <button class="tip-btn" data-tip="Nombre de tantièmes sur le total des parties communes générales de la copropriété. Ex : 245/10 000èmes.">?</button>
+              </div>
+              <input type="text" id="copro_tantiemes" placeholder="ex : 245/10 000èmes">
+            </div>
+          </div>
+        </div>
+
         <div class="field">
           <div class="field-top">
             <label>Année de construction estimée</label>
@@ -640,6 +704,7 @@
             <option>Ardoises fibrociment</option>
             <option>Zinc / Cuivre</option>
             <option>Bac acier</option>
+            <option>Tôle</option>
             <option>Autre</option>
           </select>
         </div>
@@ -708,6 +773,7 @@
             <option>Bois (simple vitrage)</option>
             <option>Bois (double vitrage)</option>
             <option>PVC (double vitrage)</option>
+            <option>Aluminium (simple vitrage)</option>
             <option>Aluminium (double vitrage)</option>
             <option>Aluminium (triple vitrage)</option>
             <option>Mixte</option>
