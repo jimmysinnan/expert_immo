@@ -1655,25 +1655,32 @@ async function generateDevisDocx(data) {
   const nb = { style: BorderStyle.NONE, size: 0, color: 'auto' };
   const noBorders = { top: nb, bottom: nb, left: nb, right: nb, insideH: nb, insideV: nb };
 
+  // Taille de base : 17 = 8.5pt, 16 = 8pt, 15 = 7.5pt
+  const S = 17;  // taille corps
+  const SM = 15; // taille secondaire
+  const p0 = { before: 0, after: 0 };
+  const p1 = { before: 20, after: 20 };
+  const p2 = { before: 30, after: 30 };
+
   const para = (children, opts = {}) => new Paragraph({
-    children: Array.isArray(children) ? children : [new TextRun({ text: String(children), size: 18, font: 'Calibri' })],
-    spacing: { before: 30, after: 30 },
+    children: Array.isArray(children) ? children : [new TextRun({ text: String(children), size: S, font: 'Calibri' })],
+    spacing: p1,
     ...opts
   });
 
-  const tr = (text, opts = {}) => new TextRun({ text, size: 18, font: 'Calibri', ...opts });
+  const tr = (text, opts = {}) => new TextRun({ text, size: S, font: 'Calibri', ...opts });
 
   const sectionBar = (title) => new Paragraph({
-    children: [new TextRun({ text: title, bold: true, color: C.WHITE, size: 18, font: 'Calibri' })],
+    children: [new TextRun({ text: title, bold: true, color: C.WHITE, size: S, font: 'Calibri' })],
     shading: { fill: C.NAVY, type: ShadingType.SOLID },
-    spacing: { before: 80, after: 40 },
-    indent: { left: 100 }
+    spacing: { before: 60, after: 20 },
+    indent: { left: 80 }
   });
 
   const dashItem = (runs) => new Paragraph({
     children: Array.isArray(runs) ? runs : [tr('- ' + runs)],
-    indent: { left: 400 },
-    spacing: { before: 20, after: 20 }
+    indent: { left: 360 },
+    spacing: { before: 14, after: 14 }
   });
 
   // Logo cell
@@ -1683,15 +1690,14 @@ async function generateDevisDocx(data) {
       const buf = Buffer.from(logo.data, 'base64');
       const imgType = (logo.mimeType || '').includes('png') ? 'png' : 'jpg';
       logoCell.push(new Paragraph({
-        children: [new ImageRun({ data: buf, transformation: { width: 80, height: 80 }, type: imgType })],
-        spacing: { before: 0, after: 0 }
+        children: [new ImageRun({ data: buf, transformation: { width: 70, height: 70 }, type: imgType })],
+        spacing: p0
       }));
     } catch { logoCell.push(para('')); }
   } else {
     logoCell.push(
-      new Paragraph({ children: [tr('CJ', { bold: true, size: 40, color: C.NAVY })], spacing: { before: 0, after: 0 } }),
-      new Paragraph({ children: [tr('CABINET', { size: 18, color: C.NAVY })], spacing: { before: 0, after: 0 } }),
-      new Paragraph({ children: [tr('JALTA', { size: 18, color: C.NAVY })], spacing: { before: 0, after: 0 } })
+      new Paragraph({ children: [tr('CJ', { bold: true, size: 32, color: C.NAVY })], spacing: p0 }),
+      new Paragraph({ children: [tr('CABINET JALTA', { size: S, color: C.NAVY })], spacing: p0 })
     );
   }
 
@@ -1699,26 +1705,26 @@ async function generateDevisDocx(data) {
     width: { size: 100, type: WidthType.PERCENTAGE },
     borders: noBorders,
     rows: [new TableRow({ children: [
-      new TableCell({ width: { size: 22, type: WidthType.PERCENTAGE }, borders: noBorders, children: logoCell }),
-      new TableCell({ width: { size: 78, type: WidthType.PERCENTAGE }, borders: noBorders, children: [
+      new TableCell({ width: { size: 20, type: WidthType.PERCENTAGE }, borders: noBorders, verticalAlign: 'center', children: logoCell }),
+      new TableCell({ width: { size: 80, type: WidthType.PERCENTAGE }, borders: noBorders, children: [
         new Paragraph({
-          children: [tr('EXPERTISES IMMOBILIERES', { bold: true, italics: true, size: 20, color: C.NAVY })],
-          spacing: { before: 10, after: 10 }
+          children: [tr('EXPERTISES IMMOBILIERES', { bold: true, italics: true, size: 19, color: C.NAVY })],
+          spacing: p0
         }),
         new Paragraph({
-          children: [tr('Territoires : Martinique, Guadeloupe, Saint-Martin, Saint Barthélémy et Guyane Française', { italics: true, size: 16 })],
-          spacing: { before: 0, after: 0 },
+          children: [tr('Territoires : Martinique, Guadeloupe, Saint-Martin, Saint Barthélémy et Guyane Française', { italics: true, size: SM })],
+          spacing: p0,
           border: { bottom: { style: BorderStyle.SINGLE, size: 3, color: C.GRAY_MED } }
         }),
-        new Paragraph({ children: [tr(dateStr)], alignment: AlignmentType.RIGHT, spacing: { before: 40, after: 20 } }),
-        new Paragraph({ children: [tr(ordonnateur || 'Monsieur', { bold: true })], alignment: AlignmentType.RIGHT, spacing: { before: 10, after: 10 } }),
-        new Paragraph({ children: [tr('Email. : ' + (email_ord || ''))], alignment: AlignmentType.RIGHT, spacing: { before: 0, after: 10 } }),
+        new Paragraph({ children: [tr(dateStr, { size: SM })], alignment: AlignmentType.RIGHT, spacing: { before: 24, after: 10 } }),
+        new Paragraph({ children: [tr(ordonnateur || 'Monsieur', { bold: true })], alignment: AlignmentType.RIGHT, spacing: p0 }),
+        ...(email_ord ? [new Paragraph({ children: [tr('Email. : ' + email_ord, { size: SM })], alignment: AlignmentType.RIGHT, spacing: p0 })] : []),
       ]})
     ]})]
   });
 
   const affaireBox = new Table({
-    width: { size: 45, type: WidthType.PERCENTAGE },
+    width: { size: 48, type: WidthType.PERCENTAGE },
     borders: {
       top: { style: BorderStyle.SINGLE, size: 6, color: C.BLACK },
       bottom: { style: BorderStyle.SINGLE, size: 6, color: C.BLACK },
@@ -1727,15 +1733,9 @@ async function generateDevisDocx(data) {
       insideH: nb, insideV: nb
     },
     rows: [new TableRow({ children: [
-      new TableCell({ borders: noBorders, margins: { top: 80, bottom: 80, left: 120, right: 120 }, children: [
-        new Paragraph({
-          children: [tr('Affaire : ', { bold: true }), tr(num_dossier || '')],
-          spacing: { before: 40, after: 40 }
-        }),
-        new Paragraph({
-          children: [tr('Objet ', { bold: true, underline: {} }), tr(': proposition de services')],
-          spacing: { before: 20, after: 40 }
-        })
+      new TableCell({ borders: noBorders, margins: { top: 60, bottom: 60, left: 100, right: 100 }, children: [
+        new Paragraph({ children: [tr('Affaire : ', { bold: true }), tr(num_dossier || '')], spacing: p0 }),
+        new Paragraph({ children: [tr('Objet ', { bold: true, underline: {} }), tr(': proposition de services')], spacing: { before: 10, after: 0 } })
       ]})
     ]})]
   });
@@ -1746,107 +1746,90 @@ async function generateDevisDocx(data) {
     rows: [
       new TableRow({ children: [
         new TableCell({ width: { size: 33, type: WidthType.PERCENTAGE }, borders: noBorders,
-          children: [para('- Intervention sur site :', { spacing: { before: 20, after: 20 } })] }),
+          children: [para('- Intervention sur site :', { spacing: p1 })] }),
         new TableCell({ width: { size: 67, type: WidthType.PERCENTAGE }, borders: noBorders,
-          children: [para('A déterminer ultérieurement, après confirmation de la mission et versement de la provision', { spacing: { before: 20, after: 20 } })] })
+          children: [para('A déterminer ultérieurement, après confirmation de la mission et versement de la provision', { spacing: p1 })] })
       ]}),
       new TableRow({ children: [
         new TableCell({ width: { size: 33, type: WidthType.PERCENTAGE }, borders: noBorders,
-          children: [para('- Remise rapport :', { spacing: { before: 20, after: 20 } })] }),
+          children: [para('- Remise rapport :', { spacing: p1 })] }),
         new TableCell({ width: { size: 67, type: WidthType.PERCENTAGE }, borders: noBorders,
-          children: [para('15 jours ouvrés environ, après la visite des lieux et versement de la totalité des honoraires', { spacing: { before: 20, after: 20 } })] })
+          children: [para('15 jours ouvrés environ, après la visite des lieux et versement de la totalité des honoraires', { spacing: p1 })] })
       ]})
     ]
   });
 
+  // Footer intégré dans le contenu (ligne séparateur + adresse)
+  const footerInline = [
+    new Paragraph({
+      children: [],
+      border: { top: { style: BorderStyle.SINGLE, size: 4, color: C.GRAY_MED } },
+      spacing: { before: 40, after: 10 }
+    }),
+    new Paragraph({
+      alignment: AlignmentType.CENTER, spacing: p0,
+      children: [tr('Espace LAOUCHEZ – Boulevard N.MANDELA – 97200 FORT DE FRANCE  ·  Tél. : 0596 75 08 90  ·  contact@cabinet-jalta.fr', { size: SM })]
+    }),
+    new Paragraph({
+      alignment: AlignmentType.CENTER, spacing: p0,
+      children: [tr('R.C.S. Fort-de-France 95B 488  –  N° SIRET : 402 038 285 000 19', { size: SM })]
+    }),
+  ];
+
   const children = [
     headerTable,
-    para('', { spacing: { before: 80, after: 40 } }),
+    new Paragraph({ children: [], spacing: { before: 60, after: 30 } }),
     affaireBox,
-    para('', { spacing: { before: 80, after: 20 } }),
+    new Paragraph({ children: [], spacing: { before: 60, after: 10 } }),
     para(genre + ','),
-    para('Faisant suite à votre demande, nous avons l\'avantage de vous communiquer notre proposition pour la mission en objet.', { spacing: { before: 20, after: 60 } }),
+    para('Faisant suite à votre demande, nous avons l\'avantage de vous communiquer notre proposition pour la mission en objet.', { spacing: { before: 10, after: 30 } }),
 
     sectionBar('CONCERNE'),
-    new Paragraph({
-      children: [tr(description_bien || `Un bien immobilier sis ${lieu || '[lieu à compléter]'}.`)],
-      spacing: { before: 40, after: 40 }
-    }),
+    new Paragraph({ children: [tr(description_bien || `Un bien immobilier sis ${lieu || '[lieu à compléter]'}.`)], spacing: p1 }),
 
     sectionBar('MISSION'),
-    new Paragraph({
-      children: [tr(`Détermination de la ${objet} du bien immobilier ci-dessus.`, { bold: true })],
-      spacing: { before: 40, after: 40 }
-    }),
+    new Paragraph({ children: [tr(`Détermination de la ${objet} du bien immobilier ci-dessus.`, { bold: true })], spacing: p1 }),
 
     sectionBar('DOCUMENTS A FOURNIR'),
     dashItem('Extraits documents cadastraux,'),
     dashItem([tr('- Extrait titre de propriété (partie désignation) ('), tr('s\'il est en votre possession', { italics: true }), tr('),')]),
-    dashItem([tr('- Plans de distribution de la construction ( '), tr('s\'ils existent', { italics: true }), tr('),')]),
+    dashItem([tr('- Plans de distribution de la construction ('), tr('s\'ils existent', { italics: true }), tr('),')]),
     dashItem([tr('- Etat locatif actuel ('), tr('si loué', { italics: true }), tr(').')]),
 
     sectionBar('HONORAIRES*'),
     new Paragraph({
+      alignment: AlignmentType.CENTER, spacing: p1,
       children: [
-        tr(`${montantStr} (${montantLettres} EUROS ) TTC*`, { bold: true, size: 20 }),
-        tr(' ( TVA 8.5 % incluse)', { bold: true })
-      ],
-      alignment: AlignmentType.CENTER,
-      spacing: { before: 40, after: 20 }
+        tr(`${montantStr}  (${montantLettres} EUROS)  TTC*`, { bold: true, size: 19 }),
+        tr('  ( TVA 8.5 % incluse)', { bold: true })
+      ]
     }),
     new Paragraph({
-      children: [tr('*Honoraires donnés sous réserve que les informations communiquées soient conformes à l\'existant', { italics: true, size: 16 })],
-      alignment: AlignmentType.CENTER,
-      spacing: { before: 0, after: 40 }
+      alignment: AlignmentType.CENTER, spacing: p0,
+      children: [tr('*Honoraires sous réserve de conformité des informations communiquées à l\'existant', { italics: true, size: SM })]
     }),
 
     sectionBar('CONDITIONS DE REGLEMENT'),
-    new Paragraph({
-      children: [tr('- Provision : '), tr('50 %', { bold: true }), tr(', à la confirmation de la mission')],
-      indent: { left: 400 }, spacing: { before: 20, after: 20 }
-    }),
-    new Paragraph({
-      children: [tr('- Solde : à la remise du rapport')],
-      indent: { left: 400 }, spacing: { before: 20, after: 40 }
-    }),
+    new Paragraph({ children: [tr('- Provision : '), tr('50 %', { bold: true }), tr(', à la confirmation de la mission')], indent: { left: 360 }, spacing: p1 }),
+    new Paragraph({ children: [tr('- Solde : à la remise du rapport')], indent: { left: 360 }, spacing: { before: 14, after: 20 } }),
 
     sectionBar('DELAI'),
     delaiTable,
-    para('', { spacing: { before: 80, after: 40 } }),
+    new Paragraph({ children: [], spacing: { before: 50, after: 10 } }),
 
     para('Restant à votre disposition,'),
-    new Paragraph({
-      children: [tr(`Nous vous prions d'agréer, ${genre},  l'expression de nos sentiments dévoués. `)],
-      spacing: { before: 20, after: 120 }
-    }),
-    new Paragraph({ children: [tr(signataire, { bold: true })], alignment: AlignmentType.RIGHT, spacing: { before: 20, after: 10 } }),
-    new Paragraph({ children: [tr('CABINET JALTA', { bold: true })], alignment: AlignmentType.RIGHT, spacing: { before: 0, after: 100 } }),
-    para('BON POUR ACCORD,'),
-    para('LE'),
+    new Paragraph({ children: [tr(`Nous vous prions d'agréer, ${genre}, l'expression de nos sentiments dévoués.`)], spacing: { before: 10, after: 80 } }),
+    new Paragraph({ children: [tr(signataire, { bold: true })], alignment: AlignmentType.RIGHT, spacing: p0 }),
+    new Paragraph({ children: [tr('CABINET JALTA', { bold: true })], alignment: AlignmentType.RIGHT, spacing: { before: 0, after: 60 } }),
+    new Paragraph({ children: [tr('BON POUR ACCORD,'), tr('          LE : _______________')], spacing: p0 }),
+
+    ...footerInline
   ];
 
   const doc = new Document({
     sections: [{
       properties: {
-        page: { margin: { top: convertInchesToTwip(0.65), right: convertInchesToTwip(0.85), bottom: convertInchesToTwip(0.55), left: convertInchesToTwip(0.85) } }
-      },
-      footers: {
-        default: new Footer({ children: [
-          new Paragraph({
-            alignment: AlignmentType.CENTER,
-            border: { top: { style: BorderStyle.SINGLE, size: 4, color: C.GRAY_MED } },
-            spacing: { before: 60, after: 30 },
-            children: [tr('Espace LAOUCHEZ – Boulevard N.MANDELA – 97200 FORT DE FRANCE', { size: 16 })]
-          }),
-          new Paragraph({
-            alignment: AlignmentType.CENTER, spacing: { before: 0, after: 20 },
-            children: [tr('Tél. : 0596 75 08 90  -  Email : contact@cabinet-jalta.fr', { size: 16 })]
-          }),
-          new Paragraph({
-            alignment: AlignmentType.CENTER, spacing: { before: 0, after: 0 },
-            children: [tr('R.C.S. Fort-de-France 95B 488  -  N° SIRET : 402 038 285 000 19', { size: 16 })]
-          })
-        ]})
+        page: { margin: { top: convertInchesToTwip(0.45), right: convertInchesToTwip(0.75), bottom: convertInchesToTwip(0.35), left: convertInchesToTwip(0.75) } }
       },
       children
     }]
