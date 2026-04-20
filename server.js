@@ -226,10 +226,8 @@ Observations photos désordres : ${photos.desordres || 'Aucune photo fournie'}
 === SURFACES ===
 ${surfacesText}
 
-=== SECTION SITUATION GÉOGRAPHIQUE UNIQUEMENT (déjà rédigée — copier telle quelle, SANS le marché immobilier) ===
+=== SECTION SITUATION GÉOGRAPHIQUE (déjà rédigée — copier telle quelle dans la clé "situation_geographique") ===
 ${chapter1}
-
-IMPORTANT : Le texte ci-dessus contient deux blocs. Le bloc SITUATION GÉOGRAPHIQUE va dans la clé "situation_geographique". Le bloc MARCHÉ IMMOBILIER / ENVIRONNEMENT ÉCONOMIQUE va UNIQUEMENT dans la clé "marche_immobilier". Ne jamais mélanger les deux.
 
 ---
 
@@ -265,7 +263,7 @@ app.post('/api/chapter1', async (req, res) => {
 
     const response = await client.messages.create({
       model: process.env.CLAUDE_MODEL || 'claude-sonnet-4-6',
-      max_tokens: 2000,
+      max_tokens: 3000,
       temperature: 0,
       tools: [{ type: 'web_search_20250305', name: 'web_search', max_uses: 5 }],
       messages: [{ role: 'user', content: buildChapter1Prompt(adresse) }]
