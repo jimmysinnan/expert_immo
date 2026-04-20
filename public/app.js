@@ -244,30 +244,39 @@ function handleDesordrePhoto(i, input) {
   }
 }
 
-// ── INIT SURFACES (15 lignes) ─────────────────────────────────────────────────
+// ── INIT SURFACES ─────────────────────────────────────────────────────────────
+const SURF_HAB_TYPES = ['Séjour / Salon','Cuisine','Salle à manger','Chambre','Bureau','Salle de bain','Salle d\'eau','WC','Couloir / Dégagement','Dressing','Autre'];
+const SURF_ANN_TYPES = ['Garage','Cave','Cellier / Buanderie','Véranda','Terrasse couverte','Combles','Abri de jardin','Autre (annexe)'];
+const SURF_NIV_HAB = ['Rez-de-chaussée','Niveau 1 (R+1)','Niveau 2 (R+2)','Sous-sol','Combles'];
+const SURF_NIV_ANN = ['Rez-de-chaussée','Niveau 1 (R+1)','Sous-sol','Combles','Extérieur / Détaché'];
+
+function makeSurfRow(cat) {
+  const types  = cat === 'hab' ? SURF_HAB_TYPES : SURF_ANN_TYPES;
+  const niveaux = cat === 'hab' ? SURF_NIV_HAB : SURF_NIV_ANN;
+  const tr = document.createElement('tr');
+  tr.innerHTML = `
+    <td><select class="s-type"><option value="">— Type —</option>${types.map(t=>`<option>${t}</option>`).join('')}</select></td>
+    <td><input type="text" class="s-prec" placeholder="Ex: Chambre 1…"></td>
+    <td><select class="s-niv">${niveaux.map(n=>`<option>${n}</option>`).join('')}</select></td>
+    <td><input type="number" class="s-m2" placeholder="m²" min="0" step="0.5" style="text-align:right;max-width:72px"></td>
+    <td><input type="number" class="s-pond" placeholder="pond." min="0" step="0.5" style="text-align:right;max-width:72px"></td>
+    <td style="width:28px;text-align:center"><button type="button" class="surf-del-btn" onclick="this.closest('tr').remove()" title="Supprimer">✕</button></td>`;
+  return tr;
+}
+
+function addSurfRow(cat) {
+  const tbody = document.getElementById(`surf-body-${cat}`);
+  if (tbody) tbody.appendChild(makeSurfRow(cat));
+}
+
 function initSurfaces() {
   const habTbody = document.getElementById('surf-body-hab');
   const annTbody = document.getElementById('surf-body-ann');
   if (!habTbody || !annTbody) return;
-
-  const HAB_TYPES = ['Séjour / Salon','Cuisine','Salle à manger','Chambre','Bureau','Salle de bain','Salle d\'eau','WC','Couloir / Dégagement','Dressing','Autre'];
-  const ANN_TYPES = ['Garage','Cave','Cellier / Buanderie','Véranda','Terrasse couverte','Combles','Abri de jardin','Autre (annexe)'];
-  const NIV_HAB = ['Rez-de-chaussée','Niveau 1 (R+1)','Niveau 2 (R+2)','Sous-sol','Combles'];
-  const NIV_ANN = ['Rez-de-chaussée','Niveau 1 (R+1)','Sous-sol','Combles','Extérieur / Détaché'];
-
-  const makeRow = (cat, i, types, niveaux) => `<tr>
-    <td><select id="surf_type_${cat}_${i}">
-      <option value="">— Type —</option>
-      ${types.map(t => `<option>${t}</option>`).join('')}
-    </select></td>
-    <td><input type="text" id="surf_prec_${cat}_${i}" placeholder="Ex: Chambre 1…"></td>
-    <td><select id="surf_niv_${cat}_${i}">${niveaux.map(n => `<option>${n}</option>`).join('')}</select></td>
-    <td><input type="number" id="surf_m2_${cat}_${i}" placeholder="m²" min="0" step="0.5" style="text-align:right;max-width:72px"></td>
-    <td><input type="number" id="surf_pond_${cat}_${i}" placeholder="pond." min="0" step="0.5" style="text-align:right;max-width:72px"></td>
-  </tr>`;
-
-  habTbody.innerHTML = Array.from({length: 10}, (_, i) => makeRow('hab', i + 1, HAB_TYPES, NIV_HAB)).join('');
-  annTbody.innerHTML = Array.from({length: 7}, (_, i) => makeRow('ann', i + 1, ANN_TYPES, NIV_ANN)).join('');
+  habTbody.innerHTML = '';
+  annTbody.innerHTML = '';
+  for (let i = 0; i < 10; i++) habTbody.appendChild(makeSurfRow('hab'));
+  for (let i = 0; i < 7;  i++) annTbody.appendChild(makeSurfRow('ann'));
 }
 
 // ── COLLECTE DES DONNÉES DU FORMULAIRE ────────────────────────────────────────
@@ -291,29 +300,23 @@ function collectFormData() {
     desordresText += `Origine probable : ${orig || '[à compléter]'}\n\n`;
   });
 
-  // Surfaces
+  // Surfaces — lecture dynamique par classes (compatible lignes ajoutées via +)
   let surfacesText = '';
   const surfacesArray = [];
-  for (let i = 1; i <= 10; i++) {
-    const type = get(`surf_type_hab_${i}`);
-    const m2 = get(`surf_m2_hab_${i}`);
-    if (!type && !m2) continue;
-    const prec = get(`surf_prec_hab_${i}`);
-    const niv = get(`surf_niv_hab_${i}`);
-    const pond = get(`surf_pond_hab_${i}`);
-    surfacesText += `| ${type}${prec ? ' — ' + prec : ''} | ${niv} | ${m2} |\n`;
-    surfacesArray.push({ type, prec, niveau: niv, m2, pond, category: 'habitable' });
-  }
-  for (let i = 1; i <= 7; i++) {
-    const type = get(`surf_type_ann_${i}`);
-    const m2 = get(`surf_m2_ann_${i}`);
-    if (!type && !m2) continue;
-    const prec = get(`surf_prec_ann_${i}`);
-    const niv = get(`surf_niv_ann_${i}`);
-    const pond = get(`surf_pond_ann_${i}`);
-    surfacesText += `| ${type}${prec ? ' — ' + prec : ''} | ${niv} | ${m2} |\n`;
-    surfacesArray.push({ type, prec, niveau: niv, m2, pond, category: 'annexe' });
-  }
+  const collectSurfRows = (tbodyId, category) => {
+    document.querySelectorAll(`#${tbodyId} tr`).forEach(tr => {
+      const type  = (tr.querySelector('.s-type')?.value  || '').trim();
+      const m2    = (tr.querySelector('.s-m2')?.value    || '').trim();
+      if (!type && !m2) return;
+      const prec  = (tr.querySelector('.s-prec')?.value  || '').trim();
+      const niv   = (tr.querySelector('.s-niv')?.value   || '').trim();
+      const pond  = (tr.querySelector('.s-pond')?.value  || '').trim();
+      surfacesText += `| ${type}${prec ? ' — ' + prec : ''} | ${niv} | ${m2} |\n`;
+      surfacesArray.push({ type, prec, niveau: niv, m2, pond, category });
+    });
+  };
+  collectSurfRows('surf-body-hab', 'habitable');
+  collectSurfRows('surf-body-ann', 'annexe');
 
   return {
     ref_dossier: get('ref_dossier') || 'EXP-2025-XXX',

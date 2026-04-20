@@ -948,10 +948,13 @@
               <th>Niveau</th>
               <th>Surface m²</th>
               <th>Surf. pond. <button class="tip-btn" data-tip="Surface pondérée à saisir manuellement (après application du coefficient).">?</button></th>
+              <th style="width:28px"></th>
             </tr>
           </thead>
           <tbody id="surf-body-hab"></tbody>
         </table>
+        <button type="button" class="surf-add-btn" onclick="addSurfRow('hab')">+ Ajouter une ligne</button>
+
         <div class="surf-section-label" style="margin-top:18px">Surfaces annexes</div>
         <table class="surf-table">
           <thead>
@@ -961,10 +964,12 @@
               <th>Niveau</th>
               <th>Surface m²</th>
               <th>Surf. pond. <button class="tip-btn" data-tip="Surface pondérée à saisir manuellement.">?</button></th>
+              <th style="width:28px"></th>
             </tr>
           </thead>
           <tbody id="surf-body-ann"></tbody>
         </table>
+        <button type="button" class="surf-add-btn" onclick="addSurfRow('ann')">+ Ajouter une ligne</button>
       </div>
     </div>
     <div class="form-nav">

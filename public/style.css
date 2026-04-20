@@ -270,6 +270,10 @@ body::after{
 .surf-table td input:focus,.surf-table td select:focus{ background:rgba(26,47,78,0.05) }
 .surf-table td select{ cursor:pointer }
 .surf-section-label{ font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.8px; color:var(--navy); padding:6px 2px 4px; border-bottom:2px solid var(--navy); margin-bottom:4px }
+.surf-add-btn{ margin-top:6px; font-size:11px; font-weight:600; color:var(--navy); background:transparent; border:1px dashed var(--navy); border-radius:6px; padding:4px 12px; cursor:pointer; opacity:.7; transition:opacity .15s }
+.surf-add-btn:hover{ opacity:1 }
+.surf-del-btn{ font-size:10px; color:var(--text3); background:transparent; border:none; cursor:pointer; padding:2px 4px; border-radius:3px; transition:color .12s }
+.surf-del-btn:hover{ color:#e74c3c }
 
 /* ── UPLOAD ZONE ── */
 .upload-zone{
