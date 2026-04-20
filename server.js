@@ -226,8 +226,10 @@ Observations photos désordres : ${photos.desordres || 'Aucune photo fournie'}
 === SURFACES ===
 ${surfacesText}
 
-=== SECTION SITUATION GÉOGRAPHIQUE (déjà rédigée — intégrer telle quelle) ===
+=== SECTION SITUATION GÉOGRAPHIQUE UNIQUEMENT (déjà rédigée — copier telle quelle, SANS le marché immobilier) ===
 ${chapter1}
+
+IMPORTANT : Le texte ci-dessus contient deux blocs. Le bloc SITUATION GÉOGRAPHIQUE va dans la clé "situation_geographique". Le bloc MARCHÉ IMMOBILIER / ENVIRONNEMENT ÉCONOMIQUE va UNIQUEMENT dans la clé "marche_immobilier". Ne jamais mélanger les deux.
 
 ---
 
@@ -237,7 +239,7 @@ GÉNÈRE UN JSON avec exactement ces clés (UNIQUEMENT le JSON, sans markdown ni
   "resume_mission": "UNE SEULE phrase courte de synthèse (max 20 mots) rappelant l'objet et la localisation du bien — sans 'À la requête de', sans répéter les données du tableau.",
   "cadre_evaluation": "Commencer OBLIGATOIREMENT par le paragraphe de mission rédigé ainsi : 'À la requête de [nom donneur ordre], Nous, CABINET JALTA, avons reçu mission de déterminer la Valeur Vénale de [type et usage du bien], situé [adresse], référencé sous le dossier [réf dossier]. Après avoir visité les lieux le [date visite], en présence de notre mandant(e), relevé leur état, recueilli les renseignements nécessaires, nous avons établi le présent rapport.' Puis enchaîner avec le cadre normatif : normes TEGOVA et Charte appliquées, conditions et limites de la mission, absence de sondages destructifs, observations visuelles au conditionnel — 5 à 7 phrases au total. NE PAS mentionner le PPR. NE PAS inclure de définition de la valeur vénale.",
   "objectif_evaluation": "Texte de l'objectif de l'évaluation : nature de la mission (vénale, locative, etc.), finalité (vente, garantie, fiscalité...) — 2 à 4 phrases style JALTA. NE PAS inclure la définition 'soit le prix auquel ce bien pourrait raisonnablement être cédé...' — cette définition figure au glossaire.",
-  "situation_geographique": "Texte complet SITUATION GÉOGRAPHIQUE — intégrer la section géographique déjà rédigée telle quelle.",
+  "situation_geographique": "Copier EXACTEMENT le bloc SITUATION GÉOGRAPHIQUE fourni ci-dessus, sans aucune modification ni ajout. NE PAS inclure d'analyse de marché immobilier, de prix au m², de transactions DVF, ni d'environnement économique — ces éléments figurent UNIQUEMENT dans la clé 'marche_immobilier'.",
   "situation_urbanistique": "Texte SITUATION URBANISTIQUE — INTÉGRER OBLIGATOIREMENT le zonage PLU '${formData.zonage_plu || '[zonage non renseigné]'}' dans la première phrase. Exemple : 'Au regard du Plan Local d\\'Urbanisme en vigueur, le bien est classé en zone ${formData.zonage_plu || '[à compléter]'}...'. Décrire les règles d\\'urbanisme applicables (destination, COS, hauteur, prospect). NE PAS mentionner l\\'assainissement ni les servitudes ici — ces éléments figurent dans la description du terrain — 2 à 3 phrases style JALTA.",
   "situation_juridique": "Texte SITUATION JURIDIQUE — INTÉGRER OBLIGATOIREMENT la référence cadastrale '${formData.refs_cadastrales || '[référence à compléter]'}' dans le texte. Exemple d'ouverture : 'Le bien est cadastré sous la référence ${formData.refs_cadastrales || '[à compléter]'}...'. Mentionner le régime juridique (${formData.regime_juridique || '[à compléter]'}), la superficie du terrain (${formData.superficie_terrain || '[à compléter]'} m²), les mentions hypothécaires si connues — 3 à 5 phrases style JALTA.",
   "situation_locative_text": "Texte SITUATION LOCATIVE : si libre d'occupation ou occupé, conditions de l'occupation, incidence sur la valeur — 2 à 4 phrases. Si libre : le préciser clairement.",
