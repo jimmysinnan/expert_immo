@@ -74,31 +74,38 @@ RÈGLES ABSOLUES :
 6. Retourner UNIQUEMENT le JSON valide demandé, sans aucun texte avant ni après`;
 
 function buildChapter1Prompt(adresse) {
-  return `Tu es un expert immobilier certifié JALTA en Martinique. Rédige deux sections distinctes pour un rapport d'expertise du bien situé à :
+  return `Tu es un expert immobilier certifié JALTA en Martinique. Rédige deux sections pour un rapport d'expertise du bien situé à :
 
 ${adresse}
 
 ---
 SECTION 1 — SITUATION GÉOGRAPHIQUE (clé JSON : "situation_geographique")
-Rédige 2 à 3 paragraphes sobres et factuels :
 
-Paragraphe 1 — La commune : situer dans la Martinique (Collectivité Territoriale de Martinique — CTM — depuis 2015, île française des Antilles). Mentionner le rang de la commune par population si connu (avec chiffre approximatif), sa situation géographique dans l'île (nord/sud/est/ouest, distance de Fort-de-France), son caractère général. Ne jamais écrire "département" ni "collectivité d'outre-mer régie par l'article 73".
+Rédige 2 à 3 paragraphes selon ce modèle de style JALTA :
 
-Paragraphe 2 — Localisation du bien : quartier ou secteur, tissu bâti, desserte de proximité (commerces, services). Aucune référence à des routes spécifiques si l'information n'est pas certaine.
+Paragraphe 1 — Ouvrir OBLIGATOIREMENT par cette formule :
+"Le bien expertisé est situé dans la commune de [NOM COMMUNE EN MAJUSCULES], commune de [X XXX] habitants (Population Légale [année] – INSEE [année+3])."
+Puis situer la commune dans l'île de la Martinique : position géographique (nord/centre/sud, littoral ou intérieur), distance approximative de Fort-de-France, caractère général de la commune (urbaine, péri-urbaine, rurale, balnéaire…).
+NE JAMAIS mentionner la "CTM", la "Collectivité Territoriale de Martinique", ni aucune référence administrative ou institutionnelle.
 
-Paragraphe 3 — Accessibilité (seulement si certaine) : axes routiers connus, 2 lignes max. Si incertain, omettre.
+Paragraphe 2 — Localisation précise du bien :
+Direction et distance approximative par rapport au centre-bourg (ex : "au NORD/EST, à environ X km à vol d'oiseau du centre de l'agglomération"). Mentionner le lieu-dit si connu. Décrire le tissu bâti du secteur (rural diffus, lotissement, centre-bourg, habitat dense…).
+
+Paragraphe 3 — Accessibilité (uniquement si données fiables disponibles via recherche) :
+Routes départementales ou communales desservant le bien, avec numéros si certains. Terminer par : "Le croquis ci-dessous, extrait de la carte IGN, et la vue aérienne, extraite de la base Géoportail®, donnent une idée de sa situation."
+Si l'accessibilité précise est inconnue, omettre ce paragraphe.
 
 SECTION 2 — ENVIRONNEMENT ÉCONOMIQUE (clé JSON : "marche_immobilier")
-Rédige une analyse du marché immobilier local de la commune et du secteur concerné.
+Analyse du marché immobilier de la commune et du secteur concerné.
 - Maximum 8 lignes
 - UNIQUEMENT descriptif — aucun chiffre, aucun prix au m²
-- Style factuel : tendances de la demande, profil des acquéreurs, attractivité du secteur, dynamiques récentes
-- Entrée type : "Le marché immobilier de la commune de... se caractérise par..."
+- Tendances de la demande, profil des acquéreurs, attractivité du secteur, dynamiques récentes
+- Entrée type : "Le marché immobilier de la commune de [nom] se caractérise par..."
 
 RÈGLES ABSOLUES :
-- Style impersonnel, troisième personne, indicatif présent
-- Si une donnée est inconnue, l'omettre — ne jamais inventer
-- Retourner UNIQUEMENT un JSON valide avec deux clés : {"situation_geographique": "...", "marche_immobilier": "..."}`;
+- Style professionnel, impersonnel, indicatif présent, gras sur les éléments clés (commune, population)
+- Ne jamais inventer — si une donnée est incertaine, l'omettre
+- Retourner UNIQUEMENT un JSON valide : {"situation_geographique": "...", "marche_immobilier": "..."}`;
 }
 
 function buildStylePrompt(docText) {
