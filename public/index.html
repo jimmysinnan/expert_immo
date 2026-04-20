@@ -939,16 +939,31 @@
     </div>
     <div class="card">
       <div style="overflow-x:auto">
+        <div class="surf-section-label">Surfaces habitables</div>
         <table class="surf-table">
           <thead>
             <tr>
-              <th>Désignation <button class="tip-btn" data-tip="Type de pièce (séjour, chambre, cuisine…). Sélectionnez dans la liste ou saisissez librement.">?</button></th>
+              <th>Désignation</th>
               <th>Précision</th>
-              <th>Niveau <button class="tip-btn" data-tip="Étage où se trouve la pièce. RDC = Rez-de-chaussée.">?</button></th>
-              <th>Surface m² <button class="tip-btn" data-tip="Surface en m², arrondie à 0,5 m² près. Pour les espaces ouverts (séjour+cuisine), indiquez la surface totale.">?</button></th>
+              <th>Niveau</th>
+              <th>Surface m²</th>
+              <th>Surf. pond. <button class="tip-btn" data-tip="Surface pondérée à saisir manuellement (après application du coefficient).">?</button></th>
             </tr>
           </thead>
-          <tbody id="surf-body"></tbody>
+          <tbody id="surf-body-hab"></tbody>
+        </table>
+        <div class="surf-section-label" style="margin-top:18px">Surfaces annexes</div>
+        <table class="surf-table">
+          <thead>
+            <tr>
+              <th>Désignation</th>
+              <th>Précision</th>
+              <th>Niveau</th>
+              <th>Surface m²</th>
+              <th>Surf. pond. <button class="tip-btn" data-tip="Surface pondérée à saisir manuellement.">?</button></th>
+            </tr>
+          </thead>
+          <tbody id="surf-body-ann"></tbody>
         </table>
       </div>
     </div>

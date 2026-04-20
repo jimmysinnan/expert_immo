@@ -269,6 +269,7 @@ body::after{
 }
 .surf-table td input:focus,.surf-table td select:focus{ background:rgba(26,47,78,0.05) }
 .surf-table td select{ cursor:pointer }
+.surf-section-label{ font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.8px; color:var(--navy); padding:6px 2px 4px; border-bottom:2px solid var(--navy); margin-bottom:4px }
 
 /* ── UPLOAD ZONE ── */
 .upload-zone{

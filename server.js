@@ -666,6 +666,15 @@ function buildPhotoParagraphs(photos64Array, caption = '') {
   if (!photos64Array || !photos64Array.length) return [];
   const items = [];
 
+  // Titre AVANT les photos
+  if (caption) {
+    items.push(new Paragraph({
+      children: [new TextRun({ text: caption, bold: true, size: 20, color: C.NAVY, font: 'Times New Roman' })],
+      spacing: { before: 100, after: 60 },
+      border: { bottom: { style: BorderStyle.SINGLE, size: 3, color: C.NAVY_L } }
+    }));
+  }
+
   for (let i = 0; i < photos64Array.length; i += 2) {
     const left = buildImageRun(photos64Array[i], { width: 215, height: 160 });
     const right = i + 1 < photos64Array.length
@@ -700,14 +709,6 @@ function buildPhotoParagraphs(photos64Array, caption = '') {
       if (solo) items.push(new Paragraph({ children: [solo], alignment: AlignmentType.CENTER, spacing: { before: 60, after: 60 } }));
     }
     items.push(spacer(60));
-  }
-
-  if (caption && items.length) {
-    items.push(new Paragraph({
-      children: [new TextRun({ text: caption, size: 17, italics: true, color: C.DARK, font: 'Times New Roman' })],
-      alignment: AlignmentType.CENTER,
-      spacing: { before: 40, after: 120 }
-    }));
   }
 
   return items;
@@ -1096,62 +1097,58 @@ function buildDescriptionSection(sections, formData, p64 = {}, photoResults = {}
   const fd = formData || {};
   const surfacesArr = fd.surfaces_array || [];
 
-  // Calculer surfaces par catégorie pour pondération
-  const totalHab = surfacesArr.filter(s => !s.type?.toLowerCase().includes('garage') && !s.type?.toLowerCase().includes('cave') && !s.type?.toLowerCase().includes('cellier') && !s.type?.toLowerCase().includes('veranda'))
-    .reduce((sum, s) => sum + (parseFloat(s.m2) || 0), 0);
-  const totalAnnexes = surfacesArr.filter(s => s.type?.toLowerCase().includes('garage') || s.type?.toLowerCase().includes('cave') || s.type?.toLowerCase().includes('cellier') || s.type?.toLowerCase().includes('veranda'))
-    .reduce((sum, s) => sum + (parseFloat(s.m2) || 0), 0);
+  const habArr = surfacesArr.filter(s => s.category === 'habitable' || (!s.category && !['garage','cave','cellier','véranda','terrasse','combles','abri'].some(k => (s.type||'').toLowerCase().includes(k))));
+  const annArr = surfacesArr.filter(s => s.category === 'annexe' || (!s.category && ['garage','cave','cellier','véranda','terrasse','combles','abri'].some(k => (s.type||'').toLowerCase().includes(k))));
 
-  const surfaceRows = surfacesArr.length > 0
-    ? surfacesArr.map((s, i) =>
-        new TableRow({
-          children: [
-            new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: `${s.type || ''}${s.prec ? ' — ' + s.prec : ''}`, size: 19, font: 'Times New Roman' })], spacing: { before: 40, after: 40 } })], borders: cellBorder() }),
-            new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: s.niveau || '', size: 19, font: 'Times New Roman' })], spacing: { before: 40, after: 40 } })], borders: cellBorder() }),
-            new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: s.m2 ? `${s.m2} m²` : '[à compléter]', size: 19, font: 'Times New Roman' })], alignment: AlignmentType.RIGHT, spacing: { before: 40, after: 40 } })], borders: cellBorder() }),
-            new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: '1,00', size: 19, font: 'Times New Roman' })], alignment: AlignmentType.RIGHT, spacing: { before: 40, after: 40 } })], borders: cellBorder() }),
-            new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: s.m2 ? `${parseFloat(s.m2).toFixed(2)} m²` : '[à compléter]', size: 19, font: 'Times New Roman' })], alignment: AlignmentType.RIGHT, spacing: { before: 40, after: 40 } })], borders: cellBorder() }),
-          ]
-        })
-      )
-    : [new TableRow({
-        children: [new TableCell({ columnSpan: 5, children: [new Paragraph({ children: [new TextRun({ text: '[à rajouter par l\'expert] — Tableau des surfaces', size: 19, font: 'Times New Roman', color: C.AMBER })], alignment: AlignmentType.CENTER, spacing: { before: 80, after: 80 } })], borders: cellBorder() })]
-      })];
+  const totalHab  = habArr.reduce((sum, s) => sum + (parseFloat(s.pond || s.m2) || 0), 0);
+  const totalAnn  = annArr.reduce((sum, s) => sum + (parseFloat(s.pond || s.m2) || 0), 0);
+  const totalPond = totalHab + totalAnn;
+
+  const headerRow = () => new TableRow({ children: [
+    shadedCell(C.NAVY, [new Paragraph({ children: [new TextRun({ text: 'Désignation', bold: true, size: 19, font: 'Times New Roman', color: C.WHITE })], spacing: { before: 40, after: 40 } })], { width: { size: 35, type: WidthType.PERCENTAGE } }),
+    shadedCell(C.NAVY, [new Paragraph({ children: [new TextRun({ text: 'Niveau', bold: true, size: 19, font: 'Times New Roman', color: C.WHITE })], spacing: { before: 40, after: 40 } })], { width: { size: 20, type: WidthType.PERCENTAGE } }),
+    shadedCell(C.NAVY, [new Paragraph({ children: [new TextRun({ text: 'Surface', bold: true, size: 19, font: 'Times New Roman', color: C.WHITE })], alignment: AlignmentType.RIGHT, spacing: { before: 40, after: 40 } })], { width: { size: 15, type: WidthType.PERCENTAGE } }),
+    shadedCell(C.NAVY, [new Paragraph({ children: [new TextRun({ text: 'Coeff.', bold: true, size: 19, font: 'Times New Roman', color: C.WHITE })], alignment: AlignmentType.RIGHT, spacing: { before: 40, after: 40 } })], { width: { size: 15, type: WidthType.PERCENTAGE } }),
+    shadedCell(C.NAVY, [new Paragraph({ children: [new TextRun({ text: 'Surf. pond.', bold: true, size: 19, font: 'Times New Roman', color: C.WHITE })], alignment: AlignmentType.RIGHT, spacing: { before: 40, after: 40 } })], { width: { size: 15, type: WidthType.PERCENTAGE } }),
+  ]});
+
+  const dataRow = (s) => new TableRow({ children: [
+    new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: `${s.type || ''}${s.prec ? ' — ' + s.prec : ''}`, size: 19, font: 'Times New Roman' })], spacing: { before: 40, after: 40 } })], borders: cellBorder() }),
+    new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: s.niveau || '', size: 19, font: 'Times New Roman' })], spacing: { before: 40, after: 40 } })], borders: cellBorder() }),
+    new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: s.m2 ? `${s.m2} m²` : '[à compléter]', size: 19, font: 'Times New Roman' })], alignment: AlignmentType.RIGHT, spacing: { before: 40, after: 40 } })], borders: cellBorder() }),
+    new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: s.pond && s.m2 && parseFloat(s.m2) ? (parseFloat(s.pond)/parseFloat(s.m2)).toFixed(2) : '1,00', size: 19, font: 'Times New Roman' })], alignment: AlignmentType.RIGHT, spacing: { before: 40, after: 40 } })], borders: cellBorder() }),
+    new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: s.pond ? `${parseFloat(s.pond).toFixed(2)} m²` : (s.m2 ? `${parseFloat(s.m2).toFixed(2)} m²` : '[à compléter]'), size: 19, font: 'Times New Roman' })], alignment: AlignmentType.RIGHT, spacing: { before: 40, after: 40 } })], borders: cellBorder() }),
+  ]});
+
+  const subHeader = (label) => new TableRow({ children: [
+    shadedCell(C.NAVY_L, [new Paragraph({ children: [new TextRun({ text: label, bold: true, size: 19, font: 'Times New Roman', color: C.NAVY })], spacing: { before: 40, after: 40 } })], { columnSpan: 5 }),
+  ]});
+
+  const placeholderRow = (label) => new TableRow({
+    children: [new TableCell({ columnSpan: 5, children: [new Paragraph({ children: [new TextRun({ text: label, size: 19, font: 'Times New Roman', color: C.AMBER, italics: true })], alignment: AlignmentType.CENTER, spacing: { before: 60, after: 60 } })], borders: cellBorder() })]
+  });
 
   const surfaceTable = new Table({
     width: { size: 100, type: WidthType.PERCENTAGE },
     borders: noBorders(),
     rows: [
-      // En-tête
-      new TableRow({
-        children: [
-          shadedCell(C.NAVY, [new Paragraph({ children: [new TextRun({ text: 'Désignation', bold: true, size: 19, font: 'Times New Roman', color: C.WHITE })], spacing: { before: 40, after: 40 } })], { width: { size: 35, type: WidthType.PERCENTAGE } }),
-          shadedCell(C.NAVY, [new Paragraph({ children: [new TextRun({ text: 'Niveau', bold: true, size: 19, font: 'Times New Roman', color: C.WHITE })], spacing: { before: 40, after: 40 } })], { width: { size: 20, type: WidthType.PERCENTAGE } }),
-          shadedCell(C.NAVY, [new Paragraph({ children: [new TextRun({ text: 'Surface', bold: true, size: 19, font: 'Times New Roman', color: C.WHITE })], alignment: AlignmentType.RIGHT, spacing: { before: 40, after: 40 } })], { width: { size: 15, type: WidthType.PERCENTAGE } }),
-          shadedCell(C.NAVY, [new Paragraph({ children: [new TextRun({ text: 'Coeff.', bold: true, size: 19, font: 'Times New Roman', color: C.WHITE })], alignment: AlignmentType.RIGHT, spacing: { before: 40, after: 40 } })], { width: { size: 15, type: WidthType.PERCENTAGE } }),
-          shadedCell(C.NAVY, [new Paragraph({ children: [new TextRun({ text: 'Surface pond.', bold: true, size: 19, font: 'Times New Roman', color: C.WHITE })], alignment: AlignmentType.RIGHT, spacing: { before: 40, after: 40 } })], { width: { size: 15, type: WidthType.PERCENTAGE } }),
-        ]
-      }),
-      ...surfaceRows,
-      // Ligne totale
-      new TableRow({
-        children: [
-          shadedCell(C.NAVY_L, [new Paragraph({ children: [new TextRun({ text: 'Surface habitable totale (Loi Boutin)', bold: true, size: 19, font: 'Times New Roman', color: C.NAVY })], spacing: { before: 60, after: 60 } })], { columnSpan: 3 }),
-          shadedCell(C.NAVY_L, [new Paragraph({ children: [new TextRun({ text: totalHab > 0 ? `${totalHab.toFixed(2)} m²` : '[à rajouter par l\'expert]', bold: true, size: 19, font: 'Times New Roman', color: C.NAVY })], alignment: AlignmentType.RIGHT, spacing: { before: 60, after: 60 } })], { columnSpan: 2 }),
-        ]
-      }),
-      new TableRow({
-        children: [
-          shadedCell(C.GRAY, [new Paragraph({ children: [new TextRun({ text: 'Surfaces annexes (garages, caves, vérandas...)', size: 19, font: 'Times New Roman' })], spacing: { before: 40, after: 40 } })], { columnSpan: 3 }),
-          shadedCell(C.GRAY, [new Paragraph({ children: [new TextRun({ text: totalAnnexes > 0 ? `${totalAnnexes.toFixed(2)} m²` : '[à rajouter par l\'expert]', size: 19, font: 'Times New Roman' })], alignment: AlignmentType.RIGHT, spacing: { before: 40, after: 40 } })], { columnSpan: 2 }),
-        ]
-      }),
-      new TableRow({
-        children: [
-          shadedCell(C.NAVY, [new Paragraph({ children: [new TextRun({ text: 'TOTAL SURFACE UTILE PONDÉRÉE', bold: true, size: 19, font: 'Times New Roman', color: C.WHITE })], spacing: { before: 60, after: 60 } })], { columnSpan: 3 }),
-          shadedCell(C.NAVY, [new Paragraph({ children: [new TextRun({ text: (totalHab + totalAnnexes) > 0 ? `${(totalHab + totalAnnexes).toFixed(2)} m²` : '[à rajouter par l\'expert]', bold: true, size: 19, font: 'Times New Roman', color: C.WHITE })], alignment: AlignmentType.RIGHT, spacing: { before: 60, after: 60 } })], { columnSpan: 2 }),
-        ]
-      }),
+      headerRow(),
+      subHeader('Surfaces habitables'),
+      ...(habArr.length ? habArr.map(dataRow) : [placeholderRow('[à rajouter par l\'expert] — Surfaces habitables')]),
+      new TableRow({ children: [
+        shadedCell(C.NAVY_L, [new Paragraph({ children: [new TextRun({ text: 'Total surfaces habitables pondérées (Loi Boutin)', bold: true, size: 19, font: 'Times New Roman', color: C.NAVY })], spacing: { before: 60, after: 60 } })], { columnSpan: 4 }),
+        shadedCell(C.NAVY_L, [new Paragraph({ children: [new TextRun({ text: totalHab > 0 ? `${totalHab.toFixed(2)} m²` : '[à compléter]', bold: true, size: 19, font: 'Times New Roman', color: C.NAVY })], alignment: AlignmentType.RIGHT, spacing: { before: 60, after: 60 } })]),
+      ]}),
+      subHeader('Surfaces annexes'),
+      ...(annArr.length ? annArr.map(dataRow) : [placeholderRow('[à rajouter par l\'expert] — Surfaces annexes')]),
+      new TableRow({ children: [
+        shadedCell(C.GRAY, [new Paragraph({ children: [new TextRun({ text: 'Total surfaces annexes', size: 19, font: 'Times New Roman' })], spacing: { before: 40, after: 40 } })], { columnSpan: 4 }),
+        shadedCell(C.GRAY, [new Paragraph({ children: [new TextRun({ text: totalAnn > 0 ? `${totalAnn.toFixed(2)} m²` : '[à compléter]', size: 19, font: 'Times New Roman' })], alignment: AlignmentType.RIGHT, spacing: { before: 40, after: 40 } })]),
+      ]}),
+      new TableRow({ children: [
+        shadedCell(C.NAVY, [new Paragraph({ children: [new TextRun({ text: 'TOTAL SURFACE UTILE PONDÉRÉE', bold: true, size: 19, font: 'Times New Roman', color: C.WHITE })], spacing: { before: 60, after: 60 } })], { columnSpan: 4 }),
+        shadedCell(C.NAVY, [new Paragraph({ children: [new TextRun({ text: totalPond > 0 ? `${totalPond.toFixed(2)} m²` : '[à rajouter par l\'expert]', bold: true, size: 19, font: 'Times New Roman', color: C.WHITE })], alignment: AlignmentType.RIGHT, spacing: { before: 60, after: 60 } })]),
+      ]}),
     ]
   });
 

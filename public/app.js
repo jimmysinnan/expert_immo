@@ -245,28 +245,28 @@ function handleDesordrePhoto(i, input) {
 
 // ── INIT SURFACES (15 lignes) ─────────────────────────────────────────────────
 function initSurfaces() {
-  const tbody = document.getElementById('surf-body');
-  if (!tbody) return;
-  const types = [
-    'Séjour / Salon','Cuisine','Salle à manger','Chambre','Bureau',
-    'Salle de bain','Salle d\'eau','WC','Couloir / Dégagement',
-    'Dressing','Cave','Cellier / Buanderie','Garage','Véranda','Autre'
-  ];
-  const niveaux = ['Rez-de-chaussée','Niveau 1 (R+1)','Niveau 2 (R+2)','Sous-sol','Combles','Annexe'];
-  tbody.innerHTML = '';
-  for (let i = 1; i <= 15; i++) {
-    tbody.innerHTML += `<tr>
-      <td><select id="surf_type_${i}">
-        <option value="">— Type —</option>
-        ${types.map(t => `<option>${t}</option>`).join('')}
-      </select></td>
-      <td><input type="text" id="surf_prec_${i}" placeholder="Ex : Chambre 1, WC RDC…"></td>
-      <td><select id="surf_niv_${i}">
-        ${niveaux.map(n => `<option>${n}</option>`).join('')}
-      </select></td>
-      <td><input type="number" id="surf_m2_${i}" placeholder="m²" min="0" step="0.5" style="text-align:right;max-width:80px"></td>
-    </tr>`;
-  }
+  const habTbody = document.getElementById('surf-body-hab');
+  const annTbody = document.getElementById('surf-body-ann');
+  if (!habTbody || !annTbody) return;
+
+  const HAB_TYPES = ['Séjour / Salon','Cuisine','Salle à manger','Chambre','Bureau','Salle de bain','Salle d\'eau','WC','Couloir / Dégagement','Dressing','Autre'];
+  const ANN_TYPES = ['Garage','Cave','Cellier / Buanderie','Véranda','Terrasse couverte','Combles','Abri de jardin','Autre (annexe)'];
+  const NIV_HAB = ['Rez-de-chaussée','Niveau 1 (R+1)','Niveau 2 (R+2)','Sous-sol','Combles'];
+  const NIV_ANN = ['Rez-de-chaussée','Niveau 1 (R+1)','Sous-sol','Combles','Extérieur / Détaché'];
+
+  const makeRow = (cat, i, types, niveaux) => `<tr>
+    <td><select id="surf_type_${cat}_${i}">
+      <option value="">— Type —</option>
+      ${types.map(t => `<option>${t}</option>`).join('')}
+    </select></td>
+    <td><input type="text" id="surf_prec_${cat}_${i}" placeholder="Ex: Chambre 1…"></td>
+    <td><select id="surf_niv_${cat}_${i}">${niveaux.map(n => `<option>${n}</option>`).join('')}</select></td>
+    <td><input type="number" id="surf_m2_${cat}_${i}" placeholder="m²" min="0" step="0.5" style="text-align:right;max-width:72px"></td>
+    <td><input type="number" id="surf_pond_${cat}_${i}" placeholder="pond." min="0" step="0.5" style="text-align:right;max-width:72px"></td>
+  </tr>`;
+
+  habTbody.innerHTML = Array.from({length: 10}, (_, i) => makeRow('hab', i + 1, HAB_TYPES, NIV_HAB)).join('');
+  annTbody.innerHTML = Array.from({length: 7}, (_, i) => makeRow('ann', i + 1, ANN_TYPES, NIV_ANN)).join('');
 }
 
 // ── COLLECTE DES DONNÉES DU FORMULAIRE ────────────────────────────────────────
@@ -293,14 +293,25 @@ function collectFormData() {
   // Surfaces
   let surfacesText = '';
   const surfacesArray = [];
-  for (let i = 1; i <= 15; i++) {
-    const type = get(`surf_type_${i}`);
-    const m2 = get(`surf_m2_${i}`);
+  for (let i = 1; i <= 10; i++) {
+    const type = get(`surf_type_hab_${i}`);
+    const m2 = get(`surf_m2_hab_${i}`);
     if (!type && !m2) continue;
-    const prec = get(`surf_prec_${i}`);
-    const niv = get(`surf_niv_${i}`);
+    const prec = get(`surf_prec_hab_${i}`);
+    const niv = get(`surf_niv_hab_${i}`);
+    const pond = get(`surf_pond_hab_${i}`);
     surfacesText += `| ${type}${prec ? ' — ' + prec : ''} | ${niv} | ${m2} |\n`;
-    surfacesArray.push({ type, prec, niveau: niv, m2 });
+    surfacesArray.push({ type, prec, niveau: niv, m2, pond, category: 'habitable' });
+  }
+  for (let i = 1; i <= 7; i++) {
+    const type = get(`surf_type_ann_${i}`);
+    const m2 = get(`surf_m2_ann_${i}`);
+    if (!type && !m2) continue;
+    const prec = get(`surf_prec_ann_${i}`);
+    const niv = get(`surf_niv_ann_${i}`);
+    const pond = get(`surf_pond_ann_${i}`);
+    surfacesText += `| ${type}${prec ? ' — ' + prec : ''} | ${niv} | ${m2} |\n`;
+    surfacesArray.push({ type, prec, niveau: niv, m2, pond, category: 'annexe' });
   }
 
   return {
