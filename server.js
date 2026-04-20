@@ -182,6 +182,7 @@ DPE : Classe ${formData.dpe_classe || 'NC'} — GES : Classe ${formData.ges_clas
 Type de bien : ${formData.type_bien}
 Année de construction : ${formData.annee_construction || '[à rajouter par l\'expert]'}
 Niveaux : ${formData.nb_niveaux || '[à rajouter par l\'expert]'}
+${formData.notes_bien ? `Notes libres sur le bien (à intégrer dans la description) : ${formData.notes_bien}` : ''}
 ${(formData.type_bien === 'Appartement' || formData.type_bien === 'Immeuble') ? `
 === COPROPRIÉTÉ ===
 ${formData.appart_etage ? `Étage : ${formData.appart_etage}` : ''}
@@ -242,7 +243,7 @@ GÉNÈRE UN JSON avec exactement ces clés (UNIQUEMENT le JSON, sans markdown ni
   "situation_juridique": "Texte SITUATION JURIDIQUE — INTÉGRER OBLIGATOIREMENT la référence cadastrale '${formData.refs_cadastrales || '[référence à compléter]'}' dans le texte. Exemple d'ouverture : 'Le bien est cadastré sous la référence ${formData.refs_cadastrales || '[à compléter]'}...'. Mentionner le régime juridique (${formData.regime_juridique || '[à compléter]'}), la superficie du terrain (${formData.superficie_terrain || '[à compléter]'} m²), les mentions hypothécaires si connues — 3 à 5 phrases style JALTA.",
   "situation_locative_text": "Texte SITUATION LOCATIVE : si libre d'occupation ou occupé, conditions de l'occupation, incidence sur la valeur — 2 à 4 phrases. Si libre : le préciser clairement.",
   "description_terrain": "Texte section LE TERRAIN D\\'ASSIETTE — au moins 150 mots — style JALTA factuel. Inclure OBLIGATOIREMENT : surface (${formData.superficie_terrain || '[à compléter]'} m²), forme (${formData.forme_terrain || '[à compléter]'}), topographie, accès, clôtures, réseaux, zonage PLU (${formData.zonage_plu || '[à compléter]'}). Inclure OBLIGATOIREMENT la phrase sur l\\'assainissement : 'L\\'assainissement du bien est assuré par ${formData.assainissement || '[à compléter]'}.' Si servitude : mentionner. NE PAS mentionner le PPR. NE PAS écrire 'à l\\'examen visuel des photographies'.",
-  "description_bati": "Texte section LA CONSTRUCTION — au moins 200 mots — style JALTA : 'Il s'agit d'un bâtiment en dur...', structure, toiture, façades, menuiseries, équipements (électricité, plomberie, chauffage), DPE. NE PAS mentionner les surfaces des pièces dans ce texte — elles figurent dans le tableau. NE PAS écrire 'à l'examen visuel des photographies'. Décrire uniquement la distribution fonctionnelle (nombre de niveaux, pièces principales) sans détailler les m².${(formData.type_bien === 'Appartement') ? ` Pour l'appartement : mentionner l'étage (${formData.appart_etage || '[à compléter]'}), le type (${formData.appart_type_pieces || '[à compléter]'}), et la copropriété (${formData.copro_type || '[à compléter]'}, ${formData.copro_nb_batiments || '[à compléter]'} bâtiment(s), tantièmes : ${formData.copro_tantiemes || '[à compléter]'}).` : (formData.type_bien === 'Immeuble') ? ` Pour l'immeuble : décrire la copropriété (${formData.copro_type || '[à compléter]'}), composition : ${formData.copro_composition || '[à compléter]'}, tantièmes : ${formData.copro_tantiemes || '[à compléter]'}.` : ''}",
+  "description_bati": "Texte section LA CONSTRUCTION — au moins 200 mots — style JALTA sobre et macro. Ouvrir par : 'Il s'agit d'un [type construction] édifié [époque approximative]...'. NE PAS répéter les paramètres techniques du formulaire (matériaux, état, équipements) — ces détails figurent dans le tableau matériaux ci-dessous. Se concentrer sur : (1) la volumétrie générale et l'aspect architectural d'ensemble ; (2) la distribution fonctionnelle DÉTAILLÉE par niveau — préciser OBLIGATOIREMENT pour chaque niveau le type, la quantité et la localisation des pièces (ex : 'Le rez-de-chaussée comprend un séjour/salon, une cuisine équipée, un WC visiteurs et un garage attenant. L'étage distribue trois chambres, une salle de bains et un dégagement.') ; (3) si notes libres renseignées, les intégrer factuellement dans la description. NE PAS écrire 'à l'examen visuel des photographies'. NE PAS mentionner les surfaces en m².${(formData.type_bien === 'Appartement') ? ` Pour l'appartement : mentionner l'étage (${formData.appart_etage || '[à compléter]'}), le type (${formData.appart_type_pieces || '[à compléter]'}), et la copropriété (${formData.copro_type || '[à compléter]'}, ${formData.copro_nb_batiments || '[à compléter]'} bâtiment(s), tantièmes : ${formData.copro_tantiemes || '[à compléter]'}).` : (formData.type_bien === 'Immeuble') ? ` Pour l'immeuble : décrire la copropriété (${formData.copro_type || '[à compléter]'}), composition : ${formData.copro_composition || '[à compléter]'}, tantièmes : ${formData.copro_tantiemes || '[à compléter]'}.` : ''}",
   "desordres_texte": "Texte section ÉTAT DES LIEUX — liste tous les désordres constatés en style JALTA avec conditionnel. NE PAS écrire 'à l'examen visuel des photographies' — formuler directement les observations. Si aucun désordre : 'Au jour de notre visite, aucun désordre significatif n'a été constaté.'",
   "jugement_favorable": ["Point favorable 1", "Point favorable 2", "..."],
   "jugement_defavorable": ["Point défavorable 1", "Point défavorable 2", "..."],
@@ -269,20 +270,19 @@ app.post('/api/chapter1', async (req, res) => {
       messages: [{ role: 'user', content: buildChapter1Prompt(adresse) }]
     });
 
-    const raw = response.content
-      .filter(b => b.type === 'text')
-      .map(b => b.text)
-      .join('\n')
-      .trim();
+    // Prendre le dernier bloc texte (la réponse finale après les appels web_search)
+    const textBlocks = response.content.filter(b => b.type === 'text');
+    const raw = (textBlocks[textBlocks.length - 1]?.text || '').trim();
 
-    // Le prompt retourne maintenant un JSON avec situation_geographique + marche_immobilier
     let situation_geographique = raw;
     let marche_immobilier = '';
     try {
-      const parsed = JSON.parse(raw.replace(/^```json\n?/, '').replace(/\n?```$/, ''));
+      // Extraire le JSON même si du texte l'entoure
+      const jsonMatch = raw.match(/\{[\s\S]*\}/);
+      const parsed = JSON.parse(jsonMatch ? jsonMatch[0] : raw.replace(/^```json\n?/, '').replace(/\n?```$/, ''));
       situation_geographique = parsed.situation_geographique || raw;
       marche_immobilier = parsed.marche_immobilier || '';
-    } catch (e) { /* ancien format texte brut — garder tel quel */ }
+    } catch (e) { /* format texte brut — garder tel quel */ }
 
     res.json({ text: situation_geographique, marche_immobilier });
   } catch (err) {
@@ -721,7 +721,7 @@ function buildCoverPage(formData, logo, photos64 = {}) {
     pageBreak(),
   ];
 
-  // Logo du cabinet si disponible
+  // Logo du cabinet (image si fournie, sinon placeholder)
   if (logo && logo.data) {
     const logoRun = buildImageRun(logo, { width: 180, height: 70 });
     if (logoRun) {
@@ -731,6 +731,18 @@ function buildCoverPage(formData, logo, photos64 = {}) {
         spacing: { before: 100, after: 200 }
       }));
     }
+  } else {
+    items.push(
+      new Table({
+        width: { size: 30, type: WidthType.PERCENTAGE },
+        borders: noBorders(),
+        rows: [new TableRow({ children: [shadedCell(C.NAVY_L, [
+          new Paragraph({ alignment: AlignmentType.CENTER, spacing: { before: 80, after: 40 }, children: [new TextRun({ text: '[LOGO CABINET]', color: C.AMBER, size: 18, font: 'Times New Roman', italics: true })] }),
+          new Paragraph({ alignment: AlignmentType.CENTER, spacing: { before: 0, after: 80 }, children: [new TextRun({ text: 'CABINET JALTA', bold: true, color: C.NAVY, size: 18, font: 'Times New Roman' })] })
+        ], { borders: noBorders() })] })]
+      }),
+      spacer(100)
+    );
   }
 
   // Bandeau titre principal
@@ -1670,8 +1682,8 @@ async function generateDevisDocx(data) {
   const S = 17;  // taille corps
   const SM = 15; // taille secondaire
   const p0 = { before: 0, after: 0 };
-  const p1 = { before: 20, after: 20 };
-  const p2 = { before: 30, after: 30 };
+  const p1 = { before: 30, after: 30 };
+  const p2 = { before: 50, after: 50 };
 
   const para = (children, opts = {}) => new Paragraph({
     children: Array.isArray(children) ? children : [new TextRun({ text: String(children), size: S, font: 'Calibri' })],
@@ -1684,7 +1696,7 @@ async function generateDevisDocx(data) {
   const sectionBar = (title) => new Paragraph({
     children: [new TextRun({ text: title, bold: true, color: C.WHITE, size: S, font: 'Calibri' })],
     shading: { fill: C.NAVY, type: ShadingType.SOLID },
-    spacing: { before: 60, after: 20 },
+    spacing: { before: 80, after: 30 },
     indent: { left: 80 }
   });
 
