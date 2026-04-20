@@ -260,7 +260,9 @@ GÉNÈRE UN JSON avec exactement ces clés (UNIQUEMENT le JSON, sans markdown ni
   "resume_mission": "UNE SEULE phrase courte de synthèse (max 20 mots) rappelant l'objet et la localisation du bien — sans 'À la requête de', sans répéter les données du tableau.",
   "cadre_evaluation": "Commencer OBLIGATOIREMENT par le paragraphe de mission rédigé ainsi : 'À la requête de [nom donneur ordre], Nous, CABINET JALTA, avons reçu mission de déterminer la Valeur Vénale de [type et usage du bien], situé [adresse], référencé sous le dossier [réf dossier]. Après avoir visité les lieux le [date visite], en présence de notre mandant(e), relevé leur état, recueilli les renseignements nécessaires, nous avons établi le présent rapport.' Puis enchaîner avec le cadre normatif : normes TEGOVA et Charte appliquées, conditions et limites de la mission, absence de sondages destructifs, observations visuelles au conditionnel — 5 à 7 phrases au total. NE PAS mentionner le PPR. NE PAS inclure de définition de la valeur vénale.",
   "objectif_evaluation": "Texte de l'objectif de l'évaluation : nature de la mission (vénale, locative, etc.), finalité (vente, garantie, fiscalité...) — 2 à 4 phrases style JALTA. NE PAS inclure la définition 'soit le prix auquel ce bien pourrait raisonnablement être cédé...' — cette définition figure au glossaire.",
-  "situation_geographique": "Copier EXACTEMENT le bloc SITUATION GÉOGRAPHIQUE fourni ci-dessus, sans aucune modification ni ajout. NE PAS inclure d'analyse de marché immobilier, de prix au m², de transactions DVF, ni d'environnement économique — ces éléments figurent UNIQUEMENT dans la clé 'marche_immobilier'.",
+  "situation_geographique": "Copier EXACTEMENT le bloc SITUATION GÉOGRAPHIQUE fourni ci-dessus, sans aucune modification ni ajout. NE PAS inclure d'analyse de marché immobilier, de prix au m², de transactions DVF, ni d'environnement économique.",
+  "marche_immobilier": "Analyse du marché immobilier de la commune de ${formData.adresse_bien?.split(',').pop()?.trim() || 'la commune'} et du secteur concerné. Rédiger 4 à 6 paragraphes distincts (séparés par \\n\\n), style JALTA factuel et sobre. Thèmes obligatoires : (1) caractère général du marché local (dominante résidentielle/mixte, position dans l'île) ; (2) attractivité et desserte du secteur ; (3) positionnement du marché local par rapport aux communes voisines ; (4) dynamiques récentes de la demande (tendances, profil acquéreurs). Aucun chiffre ni prix au m² — uniquement descriptif. Ouvrir par : 'Le marché immobilier de la commune de [nom] se caractérise par...'",
+  "infrastructures_commune": "Liste des équipements et services présents dans la commune (tirés de la connaissance de la commune ${formData.adresse_bien?.split(',').pop()?.trim() || ''}). Format : une catégorie par ligne, séparées par \\n. Exemples : 'Commerces de proximité', 'Médecins, pharmaciens, dentistes', 'Classes primaires, collège, lycée', 'Équipements sportifs'. Uniquement ce qui existe réellement — 4 à 8 lignes max.",
   "situation_urbanistique": "Texte SITUATION URBANISTIQUE — INTÉGRER OBLIGATOIREMENT le zonage PLU '${formData.zonage_plu || '[zonage non renseigné]'}' dans la première phrase. Exemple : 'Au regard du Plan Local d\\'Urbanisme en vigueur, le bien est classé en zone ${formData.zonage_plu || '[à compléter]'}...'. Décrire les règles d\\'urbanisme applicables (destination, COS, hauteur, prospect). NE PAS mentionner l\\'assainissement ni les servitudes ici — ces éléments figurent dans la description du terrain — 2 à 3 phrases style JALTA.",
   "situation_juridique": "Texte SITUATION JURIDIQUE — INTÉGRER OBLIGATOIREMENT la référence cadastrale '${formData.refs_cadastrales || '[référence à compléter]'}' dans le texte. Exemple d'ouverture : 'Le bien est cadastré sous la référence ${formData.refs_cadastrales || '[à compléter]'}...'. Mentionner le régime juridique (${formData.regime_juridique || '[à compléter]'}), la superficie du terrain (${formData.superficie_terrain || '[à compléter]'} m²), les mentions hypothécaires si connues — 3 à 5 phrases style JALTA.",
   "situation_locative_text": "Texte SITUATION LOCATIVE : si libre d'occupation ou occupé, conditions de l'occupation, incidence sur la valeur — 2 à 4 phrases. Si libre : le préciser clairement.",
@@ -298,15 +300,16 @@ app.post('/api/chapter1', async (req, res) => {
 
     let situation_geographique = raw;
     let marche_immobilier = '';
+    let infrastructures_commune = '';
     try {
-      // Extraire le JSON même si du texte l'entoure
       const jsonMatch = raw.match(/\{[\s\S]*\}/);
       const parsed = JSON.parse(jsonMatch ? jsonMatch[0] : raw.replace(/^```json\n?/, '').replace(/\n?```$/, ''));
       situation_geographique = parsed.situation_geographique || raw;
       marche_immobilier = parsed.marche_immobilier || '';
+      infrastructures_commune = parsed.infrastructures_commune || '';
     } catch (e) { /* format texte brut — garder tel quel */ }
 
-    res.json({ text: situation_geographique, marche_immobilier });
+    res.json({ text: situation_geographique, marche_immobilier, infrastructures_commune });
   } catch (err) {
     console.error('[chapter1]', err.message);
     res.status(500).json({ error: err.message });
@@ -1090,7 +1093,35 @@ function buildSituationSection(sections) {
     // Environnement économique
     subBanner('1 bis   ENVIRONNEMENT ÉCONOMIQUE'),
     spacer(80),
+    // Sous-titre style JALTA
+    new Paragraph({
+      children: [new TextRun({ text: 'Environnement économique : analyse du marché local', bold: true, underline: {}, size: 20, font: 'Times New Roman', color: C.DARK })],
+      spacing: { before: 40, after: 80 }
+    }),
     ...splitParagraphs(s.marche_immobilier || '[à rajouter par l\'expert] — Analyse du marché immobilier local'),
+    spacer(80),
+    // Encart Infrastructures
+    new Paragraph({
+      children: [new TextRun({ text: 'Infrastructures', bold: true, underline: {}, size: 20, font: 'Times New Roman', color: C.DARK })],
+      spacing: { before: 80, after: 60 }
+    }),
+    new Table({
+      width: { size: 75, type: WidthType.PERCENTAGE },
+      borders: noBorders(),
+      rows: [new TableRow({ children: [new TableCell({
+        shading: { fill: C.NAVY_L, type: ShadingType.CLEAR, color: 'auto' },
+        margins: { top: 200, bottom: 200, left: 280, right: 280 },
+        children: [
+          new Paragraph({ alignment: AlignmentType.CENTER, spacing: { before: 40, after: 60 }, children: [new TextRun({ text: 'Infrastructures (commune)', bold: true, size: 20, font: 'Times New Roman', color: C.NAVY })] }),
+          ...(s.infrastructures_commune
+            ? s.infrastructures_commune.split('\n').filter(l => l.trim()).map(ligne =>
+                new Paragraph({ children: [new TextRun({ text: '- ' + ligne.trim(), bold: true, size: 20, font: 'Times New Roman', color: C.DARK })], spacing: { before: 20, after: 20 }, indent: { left: 200 } })
+              )
+            : [new Paragraph({ alignment: AlignmentType.CENTER, children: [new TextRun({ text: '[à rajouter par l\'expert] — Équipements et services de la commune', color: C.AMBER, size: 18, font: 'Times New Roman', italics: true })], spacing: { before: 40, after: 40 } })]
+          )
+        ]
+      })]})],
+    }),
     spacer(150),
     subBanner('2   SITUATION URBANISTIQUE'),
     spacer(80),

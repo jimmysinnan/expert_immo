@@ -71,6 +71,7 @@ const state = {
   ficheLogo: null,        // Logo uploadé manuellement pour la fiche dossier
   chapter1: '',
   marche_immobilier: '',
+  infrastructures_commune: '',
   style: null,
   photoResults: {},
   reportMarkdown: '',
@@ -397,6 +398,7 @@ async function startGeneration() {
       const r1 = await fetchJSON('/api/chapter1', { adresse: formData.adresse_bien });
       state.chapter1 = r1.text || '';
       state.marche_immobilier = r1.marche_immobilier || '';
+      state.infrastructures_commune = r1.infrastructures_commune || '';
       updateDetail(1, 'Chapitre 1 généré ✓');
       setStep(1, 'done');
     } catch (e) {
@@ -480,9 +482,10 @@ async function startGeneration() {
     };
     const r4 = await fetchJSON('/api/generate', payload);
     state.reportMarkdown = r4.report || '';
-    // Injecter marche_immobilier depuis chapter1 dans les sections
+    // Injecter marche_immobilier et infrastructures_commune depuis chapter1 si absent du JSON principal
     if (r4.sections) {
       r4.sections.marche_immobilier = r4.sections.marche_immobilier || state.marche_immobilier || '';
+      r4.sections.infrastructures_commune = r4.sections.infrastructures_commune || state.infrastructures_commune || '';
     }
     state.sections = r4.sections || null;
     updateDetail(4, 'Rapport rédigé ✓');
