@@ -102,10 +102,14 @@ Analyse du marché immobilier de la commune et du secteur concerné.
 - Tendances de la demande, profil des acquéreurs, attractivité du secteur, dynamiques récentes
 - Entrée type : "Le marché immobilier de la commune de [nom] se caractérise par..."
 
+SECTION 3 — INFRASTRUCTURES (clé JSON : "infrastructures_commune")
+Liste des équipements et services réels de la commune. Une catégorie par ligne. Exemples : "Commerces de proximité", "Médecins, pharmaciens, dentistes", "Classes primaires, collège, lycée polyvalent", "Cinéma", "Équipements sportifs". 4 à 8 lignes max. Uniquement ce qui existe.
+
 RÈGLES ABSOLUES :
-- Style professionnel, impersonnel, indicatif présent, gras sur les éléments clés (commune, population)
+- Style professionnel, impersonnel, indicatif présent
+- TEXTE BRUT UNIQUEMENT — aucun markdown, aucun **, aucun #, aucun *
 - Ne jamais inventer — si une donnée est incertaine, l'omettre
-- Retourner UNIQUEMENT un JSON valide : {"situation_geographique": "...", "marche_immobilier": "..."}`;
+- Retourner UNIQUEMENT un JSON valide : {"situation_geographique": "...", "marche_immobilier": "...", "infrastructures_commune": "..."}`;
 }
 
 function buildStylePrompt(docText) {
@@ -169,6 +173,11 @@ function buildMainPrompt(data) {
     .map(n => `${n.toUpperCase()} : ${surfByLevel[n].join(', ')}`)
     .join('\n')
     || '[aucune surface renseignée — à rajouter par l\'expert]';
+
+  // Instruction situation géographique : copier chapter1 si disponible, sinon générer depuis l'adresse
+  const geoInstruction = (chapter1 && chapter1.length > 80)
+    ? 'Copier EXACTEMENT le texte fourni dans === SECTION SITUATION GÉOGRAPHIQUE === ci-dessus, sans modification. NE PAS inclure de contenu marché immobilier.'
+    : `Rédiger 2 à 3 paragraphes de situation géographique pour le bien situé à ${formData.adresse_bien}. Ouvrir OBLIGATOIREMENT par : "Le bien expertisé est situé dans la commune de [NOM EN MAJUSCULES], commune de [X XXX] habitants (Population Légale [année] – INSEE [année+3])." Paragraphe 2 : direction et distance du centre-bourg, lieu-dit si connu, tissu bâti (rural diffus, lotissement…). Paragraphe 3 si données disponibles : accessibilité (routes départementales avec numéros) + phrase finale "Le croquis ci-dessous, extrait de la carte IGN, et la vue aérienne, extraite de la base Géoportail®, donnent une idée de sa situation." NE PAS mentionner CTM ni Collectivité Territoriale. Texte brut sans markdown.`;
 
   // Parser le style extrait (JSON string → objet) pour les exemples de contenu
   let styleObj = null;
@@ -260,7 +269,7 @@ GÉNÈRE UN JSON avec exactement ces clés (UNIQUEMENT le JSON, sans markdown ni
   "resume_mission": "UNE SEULE phrase courte de synthèse (max 20 mots) rappelant l'objet et la localisation du bien — sans 'À la requête de', sans répéter les données du tableau.",
   "cadre_evaluation": "Commencer OBLIGATOIREMENT par le paragraphe de mission rédigé ainsi : 'À la requête de [nom donneur ordre], Nous, CABINET JALTA, avons reçu mission de déterminer la Valeur Vénale de [type et usage du bien], situé [adresse], référencé sous le dossier [réf dossier]. Après avoir visité les lieux le [date visite], en présence de notre mandant(e), relevé leur état, recueilli les renseignements nécessaires, nous avons établi le présent rapport.' Puis enchaîner avec le cadre normatif : normes TEGOVA et Charte appliquées, conditions et limites de la mission, absence de sondages destructifs, observations visuelles au conditionnel — 5 à 7 phrases au total. NE PAS mentionner le PPR. NE PAS inclure de définition de la valeur vénale.",
   "objectif_evaluation": "Texte de l'objectif de l'évaluation : nature de la mission (vénale, locative, etc.), finalité (vente, garantie, fiscalité...) — 2 à 4 phrases style JALTA. NE PAS inclure la définition 'soit le prix auquel ce bien pourrait raisonnablement être cédé...' — cette définition figure au glossaire.",
-  "situation_geographique": "${chapter1 && chapter1.length > 80 ? 'Copier EXACTEMENT le texte fourni dans === SECTION SITUATION GÉOGRAPHIQUE === ci-dessus, sans modification. NE PAS inclure de contenu marché immobilier.' : 'Rédiger 2 à 3 paragraphes de situation géographique pour le bien situé à ' + formData.adresse_bien + '. Ouvrir OBLIGATOIREMENT par : \\'Le bien expertisé est situé dans la commune de [NOM EN MAJUSCULES], commune de [X XXX] habitants (Population Légale [année] – INSEE [année+3]).\' Paragraphe 2 : direction et distance du centre-bourg, lieu-dit si connu, tissu bâti (rural diffus, lotissement…). Paragraphe 3 : accessibilité si certaine (routes départementales avec numéros) + phrase finale : \\'Le croquis ci-dessous, extrait de la carte IGN, et la vue aérienne, extraite de la base Géoportail®, donnent une idée de sa situation.\\' NE PAS mentionner CTM, Collectivité Territoriale, marché immobilier. Texte brut sans markdown.'}",
+  "situation_geographique": "${geoInstruction}",
   "marche_immobilier": "Analyse du marché immobilier de la commune de ${formData.adresse_bien?.split(',').pop()?.trim() || 'la commune'} et du secteur concerné. Rédiger 4 à 6 paragraphes distincts (séparés par \\n\\n), style JALTA factuel et sobre. Thèmes obligatoires : (1) caractère général du marché local (dominante résidentielle/mixte, position dans l'île) ; (2) attractivité et desserte du secteur ; (3) positionnement du marché local par rapport aux communes voisines ; (4) dynamiques récentes de la demande (tendances, profil acquéreurs). Aucun chiffre ni prix au m² — uniquement descriptif. Ouvrir par : 'Le marché immobilier de la commune de [nom] se caractérise par...'",
   "infrastructures_commune": "Liste des équipements et services présents dans la commune (tirés de la connaissance de la commune ${formData.adresse_bien?.split(',').pop()?.trim() || ''}). Format : une catégorie par ligne, séparées par \\n. Exemples : 'Commerces de proximité', 'Médecins, pharmaciens, dentistes', 'Classes primaires, collège, lycée', 'Équipements sportifs'. Uniquement ce qui existe réellement — 4 à 8 lignes max.",
   "situation_urbanistique": "Texte SITUATION URBANISTIQUE — INTÉGRER OBLIGATOIREMENT le zonage PLU '${formData.zonage_plu || '[zonage non renseigné]'}' dans la première phrase. Exemple : 'Au regard du Plan Local d\\'Urbanisme en vigueur, le bien est classé en zone ${formData.zonage_plu || '[à compléter]'}...'. Décrire les règles d\\'urbanisme applicables (destination, COS, hauteur, prospect). NE PAS mentionner l\\'assainissement ni les servitudes ici — ces éléments figurent dans la description du terrain — 2 à 3 phrases style JALTA.",
