@@ -1,5 +1,15 @@
 # CLAUDE.md — expert-immo-app (ExpertIA)
 
+## INSTRUCTION PRIORITAIRE — MÉMOIRE DU PROJET
+
+**Avant toute intervention sur ce projet, lire obligatoirement les fichiers mémoire :**
+
+```
+C:\Users\jimmy\.claude\projects\c--Users-jimmy-Projets-expert-immo-app\memory\MEMORY.md
+```
+
+Ces fichiers contiennent l'état réel du code, les choix techniques, les corrections apportées et les règles métier spécifiques (style JALTA, conformité TEGOVA, règles de prompts). Ne pas se fier uniquement à ce CLAUDE.md qui peut être en retard sur les évolutions récentes.
+
 ## Identité du projet
 **ExpertIA** est une application web standalone de génération automatique de pré-rapports d'expertise immobilière pour le **Cabinet JALTA** en Martinique.
 Elle utilise Claude AI (Vision + web_search + génération texte) pour produire des rapports conformes aux standards TEGOVA 5e/6e édition et à la Charte de l'Expertise Immobilière.
@@ -85,17 +95,18 @@ Ouvrir : http://localhost:3002
 - Analyse Vision des photos par catégorie
 - Git initialisé + remote GitHub (expert_immo)
 
-### Derniers commits
-- `100da16` — feat: intégration structure et design JALTA (rapport TEGOVA 5e/6e)
-- `d210400` — Initial commit — ExpertIA v1.0
+### Derniers commits (voir mémoire pour liste complète)
+- `684b390` — feat: environnement économique complet + style JALTA + encart Infrastructures
+- `306c961` — fix: description_bati template strict anti-hallucination
+- `4b1497d` — feat: tableau surfaces hab/annexe + surf.pond + photos titres avant
+- `2633a11` — fix: situation géographique style JALTA précis, sans CTM
+- `ca18cf8` — feat: marche_immobilier, notes_bien, cover logo, devis aéré, bati macro
 
 ### Prochaines étapes identifiées
-- [ ] Améliorer la qualité des prompts de génération (affiner le style JALTA)
-- [ ] Ajouter la gestion des erreurs côté frontend (feedback utilisateur)
-- [ ] Optimiser le pipeline de génération (paralléliser certaines étapes ?)
-- [ ] Tester sur de vrais dossiers JALTA et itérer sur les prompts
-- [ ] Éventuellement : authentification simple (usage interne Cabinet)
-- [ ] Déploiement possible sur VPS ou Railway si besoin d'accès distant
+- [ ] Tester sur de vrais dossiers JALTA (golden path complet)
+- [ ] Affiner qualité des prompts (style référence DOCX mieux exploité)
+- [ ] Authentification simple (usage interne Cabinet)
+- [ ] Déploiement VPS ou Railway si accès distant nécessaire
 
 ---
 
