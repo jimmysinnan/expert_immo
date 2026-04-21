@@ -1,0 +1,1509 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ExpertIA — L'expertise immobilière augmentée par l'IA</title>
+  <meta name="description" content="Générez vos pré-rapports d'expertise immobilière conformes TEGOVA en quelques minutes grâce à l'intelligence artificielle. Solution dédiée aux cabinets d'expertise en Martinique et Antilles.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300;1,400;1,600&family=Outfit:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:      #F3EAD8;
+      --bg-2:    #EBE0C6;
+      --navy:    #1C2D47;
+      --navy-2:  #243660;
+      --terra:   #C14E36;
+      --terra-l: #D97560;
+      --terra-d: #952E1C;
+      --cream:   #FDF8F0;
+      --white:   #FFFFFF;
+      --muted:   #7A8494;
+      --muted-l: #A8B2BE;
+      --border:  rgba(28,45,71,.13);
+      --border-d: rgba(255,255,255,.12);
+      --serif:   'Cormorant Garamond', Georgia, serif;
+      --sans:    'Outfit', system-ui, sans-serif;
+      --r: 12px;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      background: var(--bg);
+      color: var(--navy);
+      font-family: var(--sans);
+      font-weight: 400;
+      line-height: 1.6;
+      overflow-x: hidden;
+    }
+
+    /* GRAIN OVERLAY */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='1'/%3E%3C/svg%3E");
+      opacity: .025;
+      pointer-events: none;
+      z-index: 9999;
+    }
+
+    /* ── NAV ── */
+    nav {
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      z-index: 100;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 20px 60px;
+      transition: background .4s, backdrop-filter .4s, border-color .4s;
+    }
+    nav.scrolled {
+      background: rgba(243,234,216,.92);
+      backdrop-filter: blur(18px);
+      border-bottom: 1px solid var(--border);
+    }
+    .logo {
+      font-family: var(--serif);
+      font-size: 1.5rem;
+      font-weight: 600;
+      color: var(--navy);
+      letter-spacing: .04em;
+    }
+    .logo span { color: var(--terra); }
+    .nav-links {
+      display: flex;
+      gap: 36px;
+      list-style: none;
+    }
+    .nav-links a {
+      color: var(--muted);
+      text-decoration: none;
+      font-size: .88rem;
+      font-weight: 500;
+      letter-spacing: .05em;
+      text-transform: uppercase;
+      transition: color .25s;
+    }
+    .nav-links a:hover { color: var(--navy); }
+    .nav-cta {
+      background: var(--terra);
+      color: var(--white);
+      border: none;
+      padding: 10px 26px;
+      border-radius: 4px;
+      font-family: var(--sans);
+      font-weight: 600;
+      font-size: .85rem;
+      letter-spacing: .06em;
+      text-transform: uppercase;
+      cursor: pointer;
+      transition: background .25s, transform .2s;
+      text-decoration: none;
+    }
+    .nav-cta:hover { background: var(--terra-d); transform: translateY(-1px); }
+
+    /* ── HERO ── */
+    #hero {
+      min-height: 100vh;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      align-items: center;
+      padding: 120px 60px 80px;
+      position: relative;
+      overflow: hidden;
+    }
+    .hero-bg {
+      position: absolute;
+      inset: 0;
+      background:
+        radial-gradient(ellipse 60% 70% at 85% 50%, rgba(193,78,54,.06) 0%, transparent 65%),
+        radial-gradient(ellipse 40% 60% at 5% 90%, rgba(193,78,54,.04) 0%, transparent 60%);
+    }
+    .hero-grid-lines {
+      position: absolute;
+      inset: 0;
+      background-image:
+        linear-gradient(rgba(28,45,71,.04) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(28,45,71,.04) 1px, transparent 1px);
+      background-size: 80px 80px;
+    }
+    .hero-content { position: relative; z-index: 2; }
+    .hero-eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      font-size: .78rem;
+      font-weight: 600;
+      letter-spacing: .14em;
+      text-transform: uppercase;
+      color: var(--terra);
+      margin-bottom: 28px;
+    }
+    .hero-eyebrow::before {
+      content: '';
+      display: block;
+      width: 32px; height: 1px;
+      background: var(--terra);
+    }
+    .hero-title {
+      font-family: var(--serif);
+      font-size: clamp(3.2rem, 5.5vw, 6.2rem);
+      font-weight: 600;
+      line-height: 1.04;
+      letter-spacing: -.01em;
+      margin-bottom: 28px;
+      color: var(--navy);
+    }
+    .hero-title em {
+      font-style: italic;
+      color: var(--terra);
+      font-weight: 300;
+    }
+    .hero-sub {
+      font-size: 1.05rem;
+      color: var(--muted);
+      max-width: 480px;
+      line-height: 1.75;
+      margin-bottom: 44px;
+    }
+    .hero-actions {
+      display: flex;
+      gap: 16px;
+      align-items: center;
+    }
+    .btn-primary {
+      background: var(--terra);
+      color: var(--white);
+      border: none;
+      padding: 15px 36px;
+      border-radius: 4px;
+      font-family: var(--sans);
+      font-weight: 600;
+      font-size: .92rem;
+      letter-spacing: .06em;
+      text-transform: uppercase;
+      cursor: pointer;
+      transition: all .25s;
+      text-decoration: none;
+      display: inline-block;
+    }
+    .btn-primary:hover {
+      background: var(--terra-d);
+      transform: translateY(-2px);
+      box-shadow: 0 8px 28px rgba(193,78,54,.28);
+    }
+    .btn-ghost {
+      background: transparent;
+      color: var(--navy);
+      border: 1px solid rgba(28,45,71,.22);
+      padding: 14px 30px;
+      border-radius: 4px;
+      font-family: var(--sans);
+      font-weight: 500;
+      font-size: .92rem;
+      letter-spacing: .04em;
+      cursor: pointer;
+      transition: all .25s;
+      text-decoration: none;
+      display: inline-block;
+    }
+    .btn-ghost:hover {
+      border-color: var(--terra);
+      color: var(--terra);
+    }
+
+    /* hero right — mockup */
+    .hero-visual {
+      position: relative;
+      z-index: 2;
+      display: flex;
+      justify-content: flex-end;
+      align-items: center;
+    }
+    .mockup-card {
+      background: var(--navy);
+      border: 1px solid rgba(255,255,255,.08);
+      border-radius: var(--r);
+      width: 420px;
+      padding: 32px;
+      box-shadow: 0 40px 80px rgba(28,45,71,.22), 0 0 0 1px rgba(193,78,54,.08);
+      animation: float 6s ease-in-out infinite;
+    }
+    @keyframes float {
+      0%,100% { transform: translateY(0); }
+      50% { transform: translateY(-12px); }
+    }
+    .mockup-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 24px;
+      padding-bottom: 20px;
+      border-bottom: 1px solid var(--border-d);
+    }
+    .mockup-dot { width: 10px; height: 10px; border-radius: 50%; }
+    .mockup-dot.r { background: #ff5f56; }
+    .mockup-dot.y { background: #ffbd2e; }
+    .mockup-dot.g { background: #27c93f; }
+    .mockup-title {
+      font-family: var(--serif);
+      font-size: 1rem;
+      font-weight: 600;
+      color: var(--terra-l);
+      margin-left: 8px;
+    }
+    .mockup-step {
+      display: flex;
+      align-items: flex-start;
+      gap: 14px;
+      margin-bottom: 16px;
+      opacity: 0;
+      transform: translateX(10px);
+      animation: stepIn .5s forwards;
+    }
+    .mockup-step:nth-child(2) { animation-delay: .4s; }
+    .mockup-step:nth-child(3) { animation-delay: .8s; }
+    .mockup-step:nth-child(4) { animation-delay: 1.2s; }
+    .mockup-step:nth-child(5) { animation-delay: 1.6s; }
+    .mockup-step:nth-child(6) { animation-delay: 2s; }
+    .mockup-step:nth-child(7) { animation-delay: 2.4s; }
+    @keyframes stepIn {
+      to { opacity: 1; transform: translateX(0); }
+    }
+    .step-num {
+      width: 28px; height: 28px;
+      border-radius: 50%;
+      border: 1px solid var(--border-d);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: .72rem;
+      font-weight: 600;
+      color: var(--terra-l);
+      flex-shrink: 0;
+      margin-top: 2px;
+    }
+    .step-content { flex: 1; }
+    .step-label {
+      font-size: .82rem;
+      font-weight: 600;
+      color: var(--white);
+      margin-bottom: 2px;
+    }
+    .step-desc {
+      font-size: .74rem;
+      color: rgba(255,255,255,.5);
+      line-height: 1.5;
+    }
+    .sb { background: linear-gradient(90deg,var(--terra),var(--terra-d)); height:3px; border-radius:2px; margin-top:6px; }
+
+    /* ── STATS ── */
+    #stats {
+      border-top: 1px solid var(--border);
+      border-bottom: 1px solid var(--border);
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 1px;
+      background: var(--border);
+    }
+    .stat-item {
+      background: var(--navy);
+      padding: 44px 40px;
+      text-align: center;
+    }
+    .stat-num {
+      font-family: var(--serif);
+      font-size: 3.2rem;
+      font-weight: 600;
+      color: var(--terra-l);
+      line-height: 1;
+      display: block;
+      margin-bottom: 8px;
+    }
+    .stat-label {
+      font-size: .8rem;
+      font-weight: 500;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      color: rgba(255,255,255,.45);
+    }
+
+    /* ── SECTIONS ── */
+    section { padding: 100px 60px; }
+
+    .section-eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      font-size: .75rem;
+      font-weight: 600;
+      letter-spacing: .14em;
+      text-transform: uppercase;
+      color: var(--terra);
+      margin-bottom: 20px;
+    }
+    .section-eyebrow::before {
+      content: '';
+      display: block;
+      width: 24px; height: 1px;
+      background: var(--terra);
+    }
+    .section-title {
+      font-family: var(--serif);
+      font-size: clamp(2.4rem, 4vw, 3.8rem);
+      font-weight: 600;
+      line-height: 1.1;
+      margin-bottom: 20px;
+      color: var(--navy);
+    }
+    .section-title em { font-style: italic; color: var(--terra); font-weight: 300; }
+    .section-sub {
+      font-size: 1rem;
+      color: var(--muted);
+      max-width: 580px;
+      line-height: 1.8;
+    }
+
+    /* ── FEATURES ── */
+    #features { background: var(--cream); }
+    .features-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 2px;
+      margin-top: 60px;
+      background: var(--border);
+      border: 1px solid var(--border);
+    }
+    .feature-card {
+      background: var(--white);
+      padding: 48px 40px;
+      position: relative;
+      overflow: hidden;
+      transition: background .3s;
+      cursor: default;
+    }
+    .feature-card::after {
+      content: '';
+      position: absolute;
+      bottom: 0; left: 0; right: 0;
+      height: 3px;
+      background: linear-gradient(90deg, var(--terra), transparent);
+      transform: scaleX(0);
+      transform-origin: left;
+      transition: transform .4s;
+    }
+    .feature-card:hover { background: var(--cream); }
+    .feature-card:hover::after { transform: scaleX(1); }
+    .feat-icon {
+      width: 48px; height: 48px;
+      background: rgba(193,78,54,.08);
+      border: 1px solid rgba(193,78,54,.18);
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 24px;
+      font-size: 1.4rem;
+    }
+    .feat-title {
+      font-family: var(--serif);
+      font-size: 1.25rem;
+      font-weight: 600;
+      color: var(--navy);
+      margin-bottom: 12px;
+    }
+    .feat-desc {
+      font-size: .88rem;
+      color: var(--muted);
+      line-height: 1.75;
+    }
+
+    /* ── PROCESS ── */
+    #process {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 80px;
+      align-items: start;
+      background: var(--bg);
+    }
+    .process-steps { margin-top: 40px; }
+    .process-step {
+      display: flex;
+      gap: 24px;
+      padding: 28px 0;
+      border-bottom: 1px solid var(--border);
+      opacity: 0;
+      transform: translateY(20px);
+      transition: opacity .5s, transform .5s;
+    }
+    .process-step.visible { opacity: 1; transform: none; }
+    .process-step:last-child { border-bottom: none; }
+    .p-num {
+      font-family: var(--serif);
+      font-size: 2rem;
+      font-weight: 300;
+      color: rgba(28,45,71,.2);
+      min-width: 48px;
+      line-height: 1;
+      padding-top: 4px;
+    }
+    .p-body {}
+    .p-title {
+      font-weight: 600;
+      font-size: .95rem;
+      color: var(--navy);
+      margin-bottom: 6px;
+      letter-spacing: .02em;
+    }
+    .p-desc { font-size: .85rem; color: var(--muted); line-height: 1.7; }
+    .process-right {
+      position: sticky;
+      top: 120px;
+    }
+    .process-right-label {
+      font-size: .76rem;
+      font-weight: 600;
+      letter-spacing: .1em;
+      text-transform: uppercase;
+      color: var(--terra);
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .process-right-label::before {
+      content: '';
+      display: block;
+      width: 18px; height: 1px;
+      background: var(--terra);
+    }
+    .report-preview {
+      background: var(--navy);
+      border: 1px solid rgba(255,255,255,.08);
+      border-radius: var(--r);
+      overflow: hidden;
+      box-shadow: 0 20px 60px rgba(28,45,71,.18);
+    }
+    .rp-bar {
+      background: rgba(193,78,54,.15);
+      border-bottom: 1px solid rgba(255,255,255,.08);
+      padding: 14px 20px;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+    .rp-badge {
+      font-size: .72rem;
+      font-weight: 700;
+      letter-spacing: .1em;
+      text-transform: uppercase;
+      color: var(--terra-l);
+      background: rgba(193,78,54,.15);
+      border: 1px solid rgba(193,78,54,.25);
+      padding: 4px 10px;
+      border-radius: 3px;
+    }
+    .rp-filename {
+      font-size: .8rem;
+      color: rgba(255,255,255,.35);
+      font-family: 'Courier New', monospace;
+    }
+    .rp-content { padding: 28px; }
+    .rp-section {
+      border-left: 2px solid var(--terra);
+      padding-left: 16px;
+      margin-bottom: 20px;
+    }
+    .rp-section-title {
+      font-family: var(--serif);
+      font-size: 1rem;
+      font-weight: 600;
+      color: var(--terra-l);
+      margin-bottom: 6px;
+    }
+    .rp-line {
+      height: 8px;
+      border-radius: 4px;
+      background: rgba(255,255,255,.07);
+      margin-bottom: 6px;
+    }
+    .rp-line:last-child { margin-bottom: 0; }
+    .rp-line.w-full { width: 100%; }
+    .rp-line.w-80  { width: 80%; }
+    .rp-line.w-65  { width: 65%; }
+    .rp-line.w-90  { width: 90%; }
+    .rp-line.w-50  { width: 50%; }
+
+    /* ── TEGOVA BADGE ── */
+    .tegova-strip {
+      background: var(--terra);
+      padding: 28px 60px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 40px;
+      flex-wrap: wrap;
+    }
+    .tegova-label {
+      font-size: .75rem;
+      font-weight: 700;
+      letter-spacing: .14em;
+      text-transform: uppercase;
+      color: rgba(255,255,255,.7);
+    }
+    .tegova-tags {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    .tag {
+      background: rgba(255,255,255,.12);
+      border: 1px solid rgba(255,255,255,.22);
+      color: var(--white);
+      font-size: .75rem;
+      font-weight: 500;
+      padding: 6px 16px;
+      border-radius: 100px;
+      letter-spacing: .04em;
+    }
+
+    /* ── PRICING ── */
+    #pricing { background: var(--cream); }
+    .pricing-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 24px;
+      margin-top: 60px;
+    }
+    .pricing-card {
+      background: var(--white);
+      border: 1px solid var(--border);
+      border-radius: var(--r);
+      padding: 44px 36px;
+      position: relative;
+      transition: transform .3s, border-color .3s, box-shadow .3s;
+    }
+    .pricing-card:hover {
+      transform: translateY(-6px);
+      box-shadow: 0 24px 60px rgba(28,45,71,.12);
+    }
+    .pricing-card.featured {
+      border-color: var(--terra);
+      background: var(--navy);
+      box-shadow: 0 0 0 1px rgba(193,78,54,.2), 0 20px 60px rgba(28,45,71,.2);
+    }
+    .pricing-card.featured:hover { transform: translateY(-8px); }
+    .pricing-card.featured .plan-price-initial { color: var(--white); }
+    .pricing-card.featured .plan-price-initial sup { color: rgba(255,255,255,.5); }
+    .pricing-card.featured .plan-price-note { color: rgba(255,255,255,.45); }
+    .pricing-card.featured .plan-sep { background: rgba(255,255,255,.1); }
+    .pricing-card.featured .plan-features li { color: rgba(255,255,255,.55); }
+    .pricing-card.featured .plan-features li.highlight { color: var(--white); }
+    .pricing-card.featured .plan-features li::before { color: var(--terra-l); }
+    .recommended-badge {
+      position: absolute;
+      top: -14px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: var(--terra);
+      color: var(--white);
+      font-size: .72rem;
+      font-weight: 700;
+      letter-spacing: .1em;
+      text-transform: uppercase;
+      padding: 5px 18px;
+      border-radius: 100px;
+      white-space: nowrap;
+    }
+    .plan-name {
+      font-size: .8rem;
+      font-weight: 700;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 20px;
+    }
+    .pricing-card.featured .plan-name { color: var(--terra-l); }
+    .plan-price-initial {
+      font-family: var(--serif);
+      font-size: 3rem;
+      font-weight: 600;
+      color: var(--navy);
+      line-height: 1;
+    }
+    .plan-price-initial sup {
+      font-size: 1.2rem;
+      font-weight: 400;
+      color: var(--muted);
+      vertical-align: super;
+      font-family: var(--sans);
+    }
+    .plan-price-note {
+      font-size: .78rem;
+      color: var(--muted);
+      margin-top: 6px;
+      margin-bottom: 6px;
+    }
+    .plan-monthly {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(193,78,54,.08);
+      border: 1px solid rgba(193,78,54,.18);
+      padding: 6px 14px;
+      border-radius: 4px;
+      margin: 16px 0 28px;
+    }
+    .pricing-card.featured .plan-monthly {
+      background: rgba(193,78,54,.2);
+      border-color: rgba(193,78,54,.4);
+    }
+    .plan-monthly-amount {
+      font-family: var(--serif);
+      font-size: 1.1rem;
+      font-weight: 600;
+      color: var(--terra);
+    }
+    .pricing-card.featured .plan-monthly-amount { color: var(--terra-l); }
+    .plan-monthly-label {
+      font-size: .76rem;
+      color: var(--muted);
+    }
+    .pricing-card.featured .plan-monthly-label { color: rgba(255,255,255,.45); }
+    .plan-sep {
+      height: 1px;
+      background: var(--border);
+      margin: 28px 0;
+    }
+    .plan-features { list-style: none; margin-bottom: 36px; }
+    .plan-features li {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      font-size: .87rem;
+      color: var(--muted);
+      padding: 6px 0;
+      line-height: 1.5;
+    }
+    .plan-features li::before {
+      content: '✓';
+      color: var(--terra);
+      font-weight: 700;
+      font-size: .85rem;
+      flex-shrink: 0;
+      margin-top: 1px;
+    }
+    .plan-features li.highlight { color: var(--navy); font-weight: 500; }
+    .btn-plan {
+      display: block;
+      width: 100%;
+      padding: 14px;
+      text-align: center;
+      border-radius: 6px;
+      font-weight: 600;
+      font-size: .88rem;
+      letter-spacing: .06em;
+      text-transform: uppercase;
+      text-decoration: none;
+      cursor: pointer;
+      transition: all .25s;
+      border: none;
+    }
+    .btn-plan-ghost {
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--navy);
+    }
+    .btn-plan-ghost:hover {
+      border-color: var(--terra);
+      color: var(--terra);
+    }
+    .btn-plan-terra {
+      background: var(--terra);
+      color: var(--white);
+    }
+    .btn-plan-terra:hover {
+      background: var(--terra-d);
+      box-shadow: 0 8px 24px rgba(193,78,54,.3);
+    }
+
+    /* ── TESTIMONIAL ── */
+    #testimonials {
+      text-align: center;
+      background: var(--bg);
+    }
+    .section-title-white { color: var(--navy); }
+    .testimonial-card {
+      background: var(--white);
+      border: 1px solid var(--border);
+      border-radius: var(--r);
+      padding: 52px 60px;
+      max-width: 780px;
+      margin: 60px auto 0;
+      position: relative;
+      box-shadow: 0 4px 32px rgba(28,45,71,.07);
+    }
+    .testimonial-card::before {
+      content: '"';
+      position: absolute;
+      top: -20px;
+      left: 60px;
+      font-family: var(--serif);
+      font-size: 8rem;
+      color: var(--terra);
+      opacity: .18;
+      line-height: 1;
+    }
+    .testimonial-text {
+      font-family: var(--serif);
+      font-size: 1.45rem;
+      font-weight: 400;
+      font-style: italic;
+      line-height: 1.7;
+      color: var(--navy);
+      margin-bottom: 32px;
+    }
+    .testimonial-author {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      justify-content: center;
+    }
+    .author-avatar {
+      width: 48px; height: 48px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, var(--terra-d), var(--navy));
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: var(--serif);
+      font-size: 1.1rem;
+      font-weight: 600;
+      color: var(--white);
+      border: 2px solid var(--border);
+    }
+    .author-name {
+      font-weight: 600;
+      font-size: .9rem;
+      color: var(--navy);
+    }
+    .author-title { font-size: .78rem; color: var(--muted); }
+
+    /* ── CTA ── */
+    #cta {
+      background: var(--navy);
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+    }
+    #cta::before {
+      content: '';
+      position: absolute;
+      width: 600px; height: 600px;
+      border-radius: 50%;
+      border: 1px solid rgba(193,78,54,.1);
+      top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
+    }
+    #cta::after {
+      content: '';
+      position: absolute;
+      width: 900px; height: 900px;
+      border-radius: 50%;
+      border: 1px solid rgba(193,78,54,.05);
+      top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
+    }
+    .cta-content { position: relative; z-index: 2; }
+    .cta-title {
+      font-family: var(--serif);
+      font-size: clamp(2.4rem, 5vw, 4.2rem);
+      font-weight: 600;
+      line-height: 1.1;
+      margin-bottom: 20px;
+      color: var(--white);
+    }
+    .cta-title em { font-style: italic; color: var(--terra-l); font-weight: 300; }
+    .cta-sub {
+      font-size: 1rem;
+      color: rgba(255,255,255,.5);
+      max-width: 500px;
+      margin: 0 auto 44px;
+      line-height: 1.75;
+    }
+    .cta-actions {
+      display: flex;
+      gap: 16px;
+      justify-content: center;
+      align-items: center;
+    }
+    .btn-ghost-white {
+      background: transparent;
+      color: var(--white);
+      border: 1px solid rgba(255,255,255,.22);
+      padding: 14px 30px;
+      border-radius: 4px;
+      font-family: var(--sans);
+      font-weight: 500;
+      font-size: .92rem;
+      letter-spacing: .04em;
+      cursor: pointer;
+      transition: all .25s;
+      text-decoration: none;
+      display: inline-block;
+    }
+    .btn-ghost-white:hover { border-color: var(--terra-l); color: var(--terra-l); }
+
+    /* ── FOOTER ── */
+    footer {
+      background: var(--navy);
+      border-top: 1px solid rgba(255,255,255,.06);
+      padding: 48px 60px;
+      display: grid;
+      grid-template-columns: 1fr auto;
+      align-items: center;
+      gap: 40px;
+    }
+    .footer-logo {
+      font-family: var(--serif);
+      font-size: 1.4rem;
+      font-weight: 600;
+      color: var(--white);
+      margin-bottom: 8px;
+    }
+    .footer-logo span { color: var(--terra-l); }
+    .footer-tagline { font-size: .82rem; color: rgba(255,255,255,.4); }
+    .footer-links {
+      display: flex;
+      gap: 28px;
+      flex-wrap: wrap;
+    }
+    .footer-links a {
+      font-size: .8rem;
+      color: rgba(255,255,255,.4);
+      text-decoration: none;
+      letter-spacing: .06em;
+      text-transform: uppercase;
+      font-weight: 500;
+      transition: color .25s;
+    }
+    .footer-links a:hover { color: var(--terra-l); }
+    .footer-copy {
+      grid-column: 1 / -1;
+      font-size: .76rem;
+      color: rgba(255,255,255,.2);
+      border-top: 1px solid rgba(255,255,255,.06);
+      padding-top: 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    /* SCROLL REVEAL */
+    .reveal {
+      opacity: 0;
+      transform: translateY(28px);
+      transition: opacity .65s ease, transform .65s ease;
+    }
+    .reveal.visible { opacity: 1; transform: none; }
+    .reveal-delay-1 { transition-delay: .1s; }
+    .reveal-delay-2 { transition-delay: .2s; }
+    .reveal-delay-3 { transition-delay: .3s; }
+    .reveal-delay-4 { transition-delay: .4s; }
+    .reveal-delay-5 { transition-delay: .5s; }
+
+    /* MODAL */
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(28,45,71,.55);
+      backdrop-filter: blur(8px);
+      z-index: 1000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity .3s;
+    }
+    .modal-overlay.open { opacity: 1; pointer-events: all; }
+    .modal {
+      background: var(--white);
+      border: 1px solid var(--border);
+      border-radius: var(--r);
+      padding: 52px;
+      max-width: 500px;
+      width: 90%;
+      transform: translateY(20px) scale(.97);
+      transition: transform .3s;
+      box-shadow: 0 32px 80px rgba(28,45,71,.2);
+    }
+    .modal-overlay.open .modal { transform: none; }
+    .modal-title {
+      font-family: var(--serif);
+      font-size: 2rem;
+      font-weight: 600;
+      color: var(--navy);
+      margin-bottom: 8px;
+    }
+    .modal-sub { font-size: .88rem; color: var(--muted); margin-bottom: 32px; }
+    .form-group { margin-bottom: 20px; }
+    .form-group label {
+      display: block;
+      font-size: .78rem;
+      font-weight: 600;
+      letter-spacing: .06em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 8px;
+    }
+    .form-group input, .form-group select, .form-group textarea {
+      width: 100%;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 12px 16px;
+      color: var(--navy);
+      font-family: var(--sans);
+      font-size: .9rem;
+      outline: none;
+      transition: border-color .25s;
+    }
+    .form-group input:focus,
+    .form-group select:focus,
+    .form-group textarea:focus { border-color: var(--terra); }
+    .form-group textarea { resize: vertical; min-height: 80px; }
+    .modal-actions {
+      display: flex;
+      gap: 12px;
+      margin-top: 28px;
+    }
+    .btn-close-modal {
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--muted);
+      padding: 12px 24px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-family: var(--sans);
+      font-size: .88rem;
+      transition: all .25s;
+    }
+    .btn-close-modal:hover { border-color: var(--navy); color: var(--navy); }
+
+    @media (max-width: 1024px) {
+      #hero { grid-template-columns: 1fr; padding: 120px 40px 60px; }
+      .hero-visual { display: none; }
+      nav { padding: 20px 40px; }
+      .nav-links { display: none; }
+      #stats { grid-template-columns: repeat(2,1fr); }
+      section { padding: 70px 40px; }
+      .features-grid { grid-template-columns: 1fr; }
+      #process { grid-template-columns: 1fr; }
+      .pricing-grid { grid-template-columns: 1fr; }
+      footer { grid-template-columns: 1fr; }
+      .footer-copy { flex-direction: column; gap: 8px; text-align: center; }
+      .tegova-strip { padding: 28px 40px; justify-content: center; text-align: center; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav id="navbar">
+  <div class="logo">Expert<span>IA</span></div>
+  <ul class="nav-links">
+    <li><a href="#features">Fonctionnalités</a></li>
+    <li><a href="#process">Processus IA</a></li>
+    <li><a href="#pricing">Tarifs</a></li>
+    <li><a href="#testimonials">Témoignages</a></li>
+  </ul>
+  <a href="#" class="nav-cta" onclick="openModal(); return false;">Demander une démo</a>
+</nav>
+
+<!-- HERO -->
+<section id="hero">
+  <div class="hero-bg"></div>
+  <div class="hero-grid-lines"></div>
+
+  <div class="hero-content">
+    <div class="hero-eyebrow">Intelligence Artificielle · Expertise Immobilière</div>
+    <h1 class="hero-title">
+      L'expertise<br>
+      immobilière<br>
+      <em>augmentée</em>
+    </h1>
+    <p class="hero-sub">
+      Générez vos pré-rapports d'expertise conformes TEGOVA 5e/6e édition en quelques minutes. Vision IA, recherche de marché en temps réel, export Word professionnel.
+    </p>
+    <div class="hero-actions">
+      <a href="#" class="btn-primary" onclick="openModal(); return false;">Demander une démo</a>
+      <a href="#features" class="btn-ghost">Voir les fonctionnalités</a>
+    </div>
+  </div>
+
+  <div class="hero-visual">
+    <div class="mockup-card">
+      <div class="mockup-header">
+        <div class="mockup-dot r"></div>
+        <div class="mockup-dot y"></div>
+        <div class="mockup-dot g"></div>
+        <span class="mockup-title">ExpertIA · Processus IA</span>
+      </div>
+
+      <div class="mockup-step">
+        <div class="step-num">1</div>
+        <div class="step-content">
+          <div class="step-label">Situation géographique</div>
+          <div class="step-desc">Données INSEE, cartographie, contexte urbain</div>
+          <div class="sb" style="width:100%"></div>
+        </div>
+      </div>
+      <div class="mockup-step">
+        <div class="step-num">2</div>
+        <div class="step-content">
+          <div class="step-label">Marché immobilier local</div>
+          <div class="step-desc">DVF, tendances, analyse descriptive</div>
+          <div class="sb" style="width:85%"></div>
+        </div>
+      </div>
+      <div class="mockup-step">
+        <div class="step-num">3</div>
+        <div class="step-content">
+          <div class="step-label">Style expert · Base de connaissance</div>
+          <div class="step-desc">Extraction depuis vos rapports de référence</div>
+          <div class="sb" style="width:90%"></div>
+        </div>
+      </div>
+      <div class="mockup-step">
+        <div class="step-num">4</div>
+        <div class="step-content">
+          <div class="step-label">Analyse Vision des photos</div>
+          <div class="step-desc">Terrain, extérieur, intérieur, désordres</div>
+          <div class="sb" style="width:78%"></div>
+        </div>
+      </div>
+      <div class="mockup-step">
+        <div class="step-num">5</div>
+        <div class="step-content">
+          <div class="step-label">Rédaction pré-rapport</div>
+          <div class="step-desc">Structure TEGOVA complète</div>
+          <div class="sb" style="width:92%"></div>
+        </div>
+      </div>
+      <div class="mockup-step">
+        <div class="step-num">6</div>
+        <div class="step-content">
+          <div class="step-label">Export Word · Identité cabinet</div>
+          <div class="step-desc">Mise en page professionnelle · prêt à signer</div>
+          <div class="sb" style="width:100%"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- STATS -->
+<div id="stats">
+  <div class="stat-item reveal">
+    <span class="stat-num" data-target="6">0</span>
+    <span class="stat-label">Étapes automatisées</span>
+  </div>
+  <div class="stat-item reveal reveal-delay-1">
+    <span class="stat-num" data-target="8">0</span>
+    <span class="stat-label">Minutes par rapport</span>
+  </div>
+  <div class="stat-item reveal reveal-delay-2">
+    <span class="stat-num" data-suffix="h">0</span>
+    <span class="stat-label">Économisées par dossier</span>
+  </div>
+  <div class="stat-item reveal reveal-delay-3">
+    <span class="stat-num" data-suffix="%" data-target="100">0</span>
+    <span class="stat-label">Conformité TEGOVA</span>
+  </div>
+</div>
+
+<!-- TEGOVA -->
+<div class="tegova-strip">
+  <span class="tegova-label">Conformité &amp; Standards</span>
+  <div class="tegova-tags">
+    <span class="tag">TEGOVA 5e édition</span>
+    <span class="tag">TEGOVA 6e édition</span>
+    <span class="tag">Charte de l'Expertise</span>
+    <span class="tag">Méthode Comparaison</span>
+    <span class="tag">Méthode Capitalisation</span>
+    <span class="tag">DVF / INSEE</span>
+  </div>
+</div>
+
+<!-- FEATURES -->
+<section id="features">
+  <div class="section-eyebrow">Fonctionnalités</div>
+  <h2 class="section-title">Tout ce dont votre<br>cabinet a besoin,<br><em>en un seul outil</em></h2>
+  <p class="section-sub">Une automatisation conçue spécifiquement pour un processus métier d'expertise immobilière. Chaque fonctionnalité répond à un vrai besoin terrain.</p>
+
+  <div class="features-grid">
+    <div class="feature-card reveal">
+      <div class="feat-icon">🔍</div>
+      <div class="feat-title">Recherche de marché en temps réel</div>
+      <p class="feat-desc">Données DVF, tendances de prix, contexte économique local — récupérés automatiquement à chaque rapport généré.</p>
+    </div>
+    <div class="feature-card reveal reveal-delay-1">
+      <div class="feat-icon">📸</div>
+      <div class="feat-title">Vision IA des photos</div>
+      <p class="feat-desc">Analyse automatique de chaque catégorie photo : terrain, vue extérieure, intérieur pièce par pièce, désordres et vices apparents.</p>
+    </div>
+    <div class="feature-card reveal reveal-delay-2">
+      <div class="feat-icon">📚</div>
+      <div class="feat-title">Base de connaissance cabinet</div>
+      <p class="feat-desc">Importez vos anciens rapports .docx. L'IA capture et reproduit votre style rédactionnel expert, vos tournures de phrases.</p>
+    </div>
+    <div class="feature-card reveal reveal-delay-3">
+      <div class="feat-icon">📄</div>
+      <div class="feat-title">Export Word professionnel</div>
+      <p class="feat-desc">Document aux couleurs de votre cabinet, structure TEGOVA en 6 chapitres, tableaux de surfaces, photos intégrées. Prêt à signer.</p>
+    </div>
+    <div class="feature-card reveal reveal-delay-4">
+      <div class="feat-icon">📐</div>
+      <div class="feat-title">Surfaces détaillées par niveau</div>
+      <p class="feat-desc">Tableau surface habitable / annexes avec surface pondérée. Injection directe dans la description de construction pour éviter toute hallucination.</p>
+    </div>
+    <div class="feature-card reveal reveal-delay-5">
+      <div class="feat-icon">⚡</div>
+      <div class="feat-title">Interface intuitive 3 étapes</div>
+      <p class="feat-desc">42 champs structurés, upload photos par catégorie, suivi temps réel du processus. Aucune formation technique requise pour les experts.</p>
+    </div>
+  </div>
+</section>
+
+<!-- PROCESS -->
+<section id="process" style="padding: 100px 60px;">
+  <div>
+    <div class="section-eyebrow">Processus IA</div>
+    <h2 class="section-title">De la saisie<br>au rapport,<br><em>en 6 étapes</em></h2>
+    <p class="section-sub">Chaque étape du processus est conçue pour maximiser la précision et la conformité du rapport final.</p>
+
+    <div class="process-steps">
+      <div class="process-step reveal">
+        <div class="p-num">01</div>
+        <div class="p-body">
+          <div class="p-title">Situation géographique &amp; marché</div>
+          <p class="p-desc">L'IA interroge le web en temps réel (INSEE, DVF, actualités locales) pour produire une analyse géographique et économique précise de la commune.</p>
+        </div>
+      </div>
+      <div class="process-step reveal reveal-delay-1">
+        <div class="p-num">02</div>
+        <div class="p-body">
+          <div class="p-title">Extraction du style expert</div>
+          <p class="p-desc">Votre rapport de référence (.docx) est parsé et analysé pour capturer votre style rédactionnel unique, vocabulaire technique et tournures professionnelles.</p>
+        </div>
+      </div>
+      <div class="process-step reveal reveal-delay-2">
+        <div class="p-num">03</div>
+        <div class="p-body">
+          <div class="p-title">Analyse Vision des photos</div>
+          <p class="p-desc">Chaque catégorie de photos est analysée par Vision IA : état général, matériaux, désordres, finitions. Synthèse structurée par catégorie.</p>
+        </div>
+      </div>
+      <div class="process-step reveal reveal-delay-3">
+        <div class="p-num">04</div>
+        <div class="p-body">
+          <div class="p-title">Génération du pré-rapport complet</div>
+          <p class="p-desc">Situation, construction, surfaces, état, évaluation — rédigés en une passe. Toutes les données saisies sont injectées directement, sans hallucination.</p>
+        </div>
+      </div>
+      <div class="process-step reveal reveal-delay-4">
+        <div class="p-num">05</div>
+        <div class="p-body">
+          <div class="p-title">Mise en forme Word</div>
+          <p class="p-desc">Export .docx aux couleurs de votre cabinet, structure en chapitres TEGOVA, tableaux, photos positionnées avec légendes, couverture logoïsée.</p>
+        </div>
+      </div>
+      <div class="process-step reveal reveal-delay-5">
+        <div class="p-num">06</div>
+        <div class="p-body">
+          <div class="p-title">Validation &amp; signature expert</div>
+          <p class="p-desc">L'expert relit, complète les valeurs de marché, signe. Le pré-rapport automatisé représente 70–80% du travail rédactionnel déjà réalisé.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="process-right reveal reveal-delay-2">
+    <div class="process-right-label">Exemple de rapport généré à l'issue du processus</div>
+    <div class="report-preview">
+      <div class="rp-bar">
+        <span class="rp-badge">TEGOVA</span>
+        <span class="rp-badge">Word</span>
+        <span class="rp-filename">Rapport_Expertise_2026.docx</span>
+      </div>
+      <div class="rp-content">
+        <div class="rp-section">
+          <div class="rp-section-title">I · Situation géographique</div>
+          <div class="rp-line w-full"></div>
+          <div class="rp-line w-90"></div>
+          <div class="rp-line w-80"></div>
+        </div>
+        <div class="rp-section" style="border-color: var(--terra-d)">
+          <div class="rp-section-title">I bis · Environnement économique</div>
+          <div class="rp-line w-full"></div>
+          <div class="rp-line w-65"></div>
+          <div class="rp-line w-90"></div>
+        </div>
+        <div class="rp-section" style="border-color: rgba(255,255,255,.2)">
+          <div class="rp-section-title" style="color:rgba(255,255,255,.5)">II · Description du bien</div>
+          <div class="rp-line w-80"></div>
+          <div class="rp-line w-full"></div>
+          <div class="rp-line w-50"></div>
+        </div>
+        <div class="rp-section" style="border-color: rgba(255,255,255,.2)">
+          <div class="rp-section-title" style="color:rgba(255,255,255,.5)">III · Analyse des surfaces</div>
+          <div class="rp-line w-90"></div>
+          <div class="rp-line w-full"></div>
+        </div>
+        <div class="rp-section" style="border-color: rgba(255,255,255,.2)">
+          <div class="rp-section-title" style="color:rgba(255,255,255,.5)">IV · État du bien</div>
+          <div class="rp-line w-65"></div>
+          <div class="rp-line w-80"></div>
+        </div>
+        <div class="rp-section" style="border-color: var(--terra)">
+          <div class="rp-section-title">V · Évaluation</div>
+          <div class="rp-line w-full" style="background:rgba(193,78,54,.2)"></div>
+          <div class="rp-line w-90" style="background:rgba(193,78,54,.14)"></div>
+          <div class="rp-line w-50" style="background:rgba(193,78,54,.1)"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- PRICING -->
+<section id="pricing">
+  <div style="text-align: center; margin-bottom: 0;">
+    <div class="section-eyebrow" style="justify-content:center">Tarifs</div>
+    <h2 class="section-title" style="text-align:center">Choisissez votre<br><em>formule cabinet</em></h2>
+    <p class="section-sub" style="margin: 0 auto; text-align:center">Investissement unique + abonnement mensuel. Déploiement clé en main, formation incluse, support dédié.</p>
+  </div>
+
+  <div class="pricing-grid">
+
+    <!-- SOLO -->
+    <div class="pricing-card reveal">
+      <div class="plan-name">Solo</div>
+      <div class="plan-price-initial"><sup>€</sup>3 500</div>
+      <div class="plan-price-note">déploiement initial HT</div>
+      <div class="plan-monthly">
+        <span class="plan-monthly-amount">150 €</span>
+        <span class="plan-monthly-label">/ mois HT</span>
+      </div>
+      <div class="plan-sep"></div>
+      <ul class="plan-features">
+        <li class="highlight">1 utilisateur</li>
+        <li>Déploiement sur 1 poste</li>
+        <li>Formation initiale 2h</li>
+        <li>Support sous 48h</li>
+        <li>Mises à jour incluses</li>
+      </ul>
+      <a href="#" class="btn-plan btn-plan-ghost" onclick="openModal('SOLO'); return false;">Demander un devis</a>
+    </div>
+
+    <!-- PME (featured) -->
+    <div class="pricing-card featured reveal reveal-delay-1">
+      <div class="recommended-badge">Recommandé</div>
+      <div class="plan-name">PME</div>
+      <div class="plan-price-initial"><sup>€</sup>4 500</div>
+      <div class="plan-price-note">déploiement initial HT</div>
+      <div class="plan-monthly">
+        <span class="plan-monthly-amount">350 €</span>
+        <span class="plan-monthly-label">/ mois HT</span>
+      </div>
+      <div class="plan-sep"></div>
+      <ul class="plan-features">
+        <li class="highlight">3 à 5 utilisateurs</li>
+        <li>Déploiement multi-postes</li>
+        <li>Formation collective 3h</li>
+        <li class="highlight">Support prioritaire 24h</li>
+        <li>3h d'évolutions / mois</li>
+      </ul>
+      <a href="#" class="btn-plan btn-plan-terra" onclick="openModal('PME'); return false;">Demander un devis</a>
+    </div>
+
+    <!-- CABINET -->
+    <div class="pricing-card reveal reveal-delay-2">
+      <div class="plan-name">Cabinet</div>
+      <div class="plan-price-initial"><sup>€</sup>7 000</div>
+      <div class="plan-price-note">déploiement initial HT</div>
+      <div class="plan-monthly">
+        <span class="plan-monthly-amount">600 €</span>
+        <span class="plan-monthly-label">/ mois HT</span>
+      </div>
+      <div class="plan-sep"></div>
+      <ul class="plan-features">
+        <li class="highlight">6 à 10 utilisateurs</li>
+        <li>Déploiement réseau complet</li>
+        <li>Formation + administrateur référent</li>
+        <li class="highlight">Support dédié sous 4h</li>
+        <li class="highlight">Exclusivité élargie</li>
+        <li>5h d'évolutions / mois</li>
+      </ul>
+      <a href="#" class="btn-plan btn-plan-ghost" onclick="openModal('CABINET'); return false;">Demander un devis</a>
+    </div>
+
+  </div>
+</section>
+
+<!-- TESTIMONIAL -->
+<section id="testimonials">
+  <div class="section-eyebrow" style="justify-content:center">Retour d'expérience</div>
+  <h2 class="section-title" style="text-align:center">Ce que disent<br><em>les experts</em></h2>
+  <div class="testimonial-card reveal">
+    <p class="testimonial-text">
+      "La qualité de la description de situation géographique et du marché immobilier nous surprend à chaque rapport. Ce n'est pas du remplissage — c'est une vraie analyse. Le gain de temps est réel, et la conformité TEGOVA est respectée."
+    </p>
+    <div class="testimonial-author">
+      <div class="author-avatar">JL</div>
+      <div class="author-info">
+        <div class="author-name">Cabinet JALTA</div>
+        <div class="author-title">Expert immobilier agréé · Martinique</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- CTA -->
+<section id="cta">
+  <div class="cta-content">
+    <h2 class="cta-title">Prêt à transformer<br><em>votre pratique</em> ?</h2>
+    <p class="cta-sub">Rejoignez les cabinets d'expertise qui ont fait confiance à ExpertIA pour automatiser leurs pré-rapports et gagner plusieurs heures par dossier.</p>
+    <div class="cta-actions">
+      <a href="#" class="btn-primary" onclick="openModal(); return false;">Demander une démo gratuite</a>
+      <a href="#pricing" class="btn-ghost-white">Voir les tarifs</a>
+    </div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <div>
+    <div class="footer-logo">Expert<span>IA</span></div>
+    <div class="footer-tagline">L'expertise immobilière augmentée par l'intelligence artificielle</div>
+  </div>
+  <div class="footer-links">
+    <a href="#features">Fonctionnalités</a>
+    <a href="#pricing">Tarifs</a>
+    <a href="#" onclick="openModal(); return false;">Contact</a>
+  </div>
+  <div class="footer-copy">
+    <span>© 2026 ExpertIA · Orbyon · Développé par Jimmy Sinnan</span>
+    <span>Solution dédiée aux cabinets d'expertise immobilière · Martinique &amp; Antilles</span>
+  </div>
+</footer>
+
+<!-- MODAL DÉMO -->
+<div class="modal-overlay" id="demoModal">
+  <div class="modal">
+    <h2 class="modal-title">Demander une démo</h2>
+    <p class="modal-sub">Un expert vous recontacte sous 24h pour organiser une démonstration personnalisée.</p>
+    <div class="form-group">
+      <label>Nom du cabinet</label>
+      <input type="text" placeholder="Votre cabinet" />
+    </div>
+    <div class="form-group">
+      <label>Votre nom</label>
+      <input type="text" placeholder="Jean Dupont" />
+    </div>
+    <div class="form-group">
+      <label>Email professionnel</label>
+      <input type="email" placeholder="expert@cabinet.mq" />
+    </div>
+    <div class="form-group">
+      <label>Formule souhaitée</label>
+      <select id="modal-plan">
+        <option value="">Choisir une formule</option>
+        <option value="SOLO">SOLO — 3 500 € + 150 €/mois</option>
+        <option value="PME">PME — 4 500 € + 350 €/mois (recommandé)</option>
+        <option value="CABINET">CABINET — 7 000 € + 600 €/mois</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label>Message (facultatif)</label>
+      <textarea placeholder="Décrivez votre besoin, volume de rapports mensuel..."></textarea>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-close-modal" onclick="closeModal()">Annuler</button>
+      <a href="mailto:jimmysinnan@gmail.com?subject=Démo ExpertIA" class="btn-primary" style="flex:1;text-align:center;padding:13px 20px;">Envoyer la demande</a>
+    </div>
+  </div>
+</div>
+
+<script>
+  // NAV scroll
+  const navbar = document.getElementById('navbar');
+  window.addEventListener('scroll', () => {
+    navbar.classList.toggle('scrolled', window.scrollY > 40);
+  });
+
+  // SCROLL REVEAL
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(e => {
+      if (e.isIntersecting) {
+        e.target.classList.add('visible');
+        const num = e.target.querySelector('[data-target]');
+        if (num) animateCounter(num);
+      }
+    });
+  }, { threshold: 0.15 });
+
+  document.querySelectorAll('.reveal, .process-step').forEach(el => observer.observe(el));
+
+  // COUNTER
+  function animateCounter(el) {
+    if (el.dataset.animated) return;
+    el.dataset.animated = true;
+    const target = parseInt(el.dataset.target) || 0;
+    const suffix = el.dataset.suffix || '';
+    const duration = 1400;
+    const start = performance.now();
+    function tick(now) {
+      const t = Math.min((now - start) / duration, 1);
+      const ease = 1 - Math.pow(1 - t, 3);
+      const current = Math.round(ease * target);
+      el.textContent = (target === 8 ? '< ' : '') + current + suffix;
+      if (t < 1) requestAnimationFrame(tick);
+      else el.textContent = (target === 8 ? '< ' : '') + target + suffix;
+    }
+    requestAnimationFrame(tick);
+  }
+
+  // Stats targets
+  const statNums = document.querySelectorAll('.stat-num');
+  statNums[0].dataset.target = '6';
+  statNums[1].dataset.target = '8';
+  statNums[2].dataset.target = '3';
+  statNums[2].dataset.suffix = 'h';
+  statNums[3].dataset.target = '100';
+  statNums[3].dataset.suffix = '%';
+
+  // MODAL
+  function openModal(plan) {
+    document.getElementById('demoModal').classList.add('open');
+    document.body.style.overflow = 'hidden';
+    if (plan) document.getElementById('modal-plan').value = plan;
+  }
+  function closeModal() {
+    document.getElementById('demoModal').classList.remove('open');
+    document.body.style.overflow = '';
+  }
+  document.getElementById('demoModal').addEventListener('click', function(e) {
+    if (e.target === this) closeModal();
+  });
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
+</script>
+</body>
+</html>
