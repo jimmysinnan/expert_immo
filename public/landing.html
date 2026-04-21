@@ -1408,37 +1408,51 @@
 <!-- MODAL DÉMO -->
 <div class="modal-overlay" id="demoModal">
   <div class="modal">
-    <h2 class="modal-title">Demander une démo</h2>
-    <p class="modal-sub">Un expert vous recontacte sous 24h pour organiser une démonstration personnalisée.</p>
-    <div class="form-group">
-      <label>Nom du cabinet</label>
-      <input type="text" placeholder="Votre cabinet" />
+
+    <div id="formState">
+      <h2 class="modal-title">Demander une démo</h2>
+      <p class="modal-sub">Un expert vous recontacte sous 24h pour organiser une démonstration personnalisée.</p>
+      <form id="demoForm">
+        <div class="form-group">
+          <label>Nom du cabinet</label>
+          <input type="text" name="cabinet" placeholder="Votre cabinet" required />
+        </div>
+        <div class="form-group">
+          <label>Votre nom</label>
+          <input type="text" name="name" placeholder="Jean Dupont" required />
+        </div>
+        <div class="form-group">
+          <label>Email professionnel</label>
+          <input type="email" name="email" placeholder="expert@cabinet.mq" required />
+        </div>
+        <div class="form-group">
+          <label>Formule souhaitée</label>
+          <select id="modal-plan" name="formule">
+            <option value="">Choisir une formule</option>
+            <option value="SOLO — 3 500 € + 150 €/mois">SOLO — 3 500 € + 150 €/mois</option>
+            <option value="PME — 4 500 € + 350 €/mois">PME — 4 500 € + 350 €/mois (recommandé)</option>
+            <option value="CABINET — 7 000 € + 600 €/mois">CABINET — 7 000 € + 600 €/mois</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Message (facultatif)</label>
+          <textarea name="message" placeholder="Décrivez votre besoin, volume de rapports mensuel..."></textarea>
+        </div>
+        <div id="formError" style="display:none; color:var(--terra); font-size:.83rem; margin-top:8px;"></div>
+        <div class="modal-actions">
+          <button type="button" class="btn-close-modal" onclick="closeModal()">Annuler</button>
+          <button type="submit" id="submitBtn" class="btn-primary" style="flex:1;border:none;cursor:pointer;padding:13px 20px;">Envoyer la demande</button>
+        </div>
+      </form>
     </div>
-    <div class="form-group">
-      <label>Votre nom</label>
-      <input type="text" placeholder="Jean Dupont" />
+
+    <div id="successState" style="display:none; text-align:center; padding: 20px 0;">
+      <div style="font-size:3rem; margin-bottom:20px;">✓</div>
+      <h2 class="modal-title" style="margin-bottom:12px;">Demande envoyée !</h2>
+      <p class="modal-sub" style="margin-bottom:32px;">Vous recevrez une réponse sous 24h à l'adresse indiquée.</p>
+      <button class="btn-primary" onclick="closeModal()" style="border:none;cursor:pointer;padding:13px 36px;">Fermer</button>
     </div>
-    <div class="form-group">
-      <label>Email professionnel</label>
-      <input type="email" placeholder="expert@cabinet.mq" />
-    </div>
-    <div class="form-group">
-      <label>Formule souhaitée</label>
-      <select id="modal-plan">
-        <option value="">Choisir une formule</option>
-        <option value="SOLO">SOLO — 3 500 € + 150 €/mois</option>
-        <option value="PME">PME — 4 500 € + 350 €/mois (recommandé)</option>
-        <option value="CABINET">CABINET — 7 000 € + 600 €/mois</option>
-      </select>
-    </div>
-    <div class="form-group">
-      <label>Message (facultatif)</label>
-      <textarea placeholder="Décrivez votre besoin, volume de rapports mensuel..."></textarea>
-    </div>
-    <div class="modal-actions">
-      <button class="btn-close-modal" onclick="closeModal()">Annuler</button>
-      <a href="mailto:jimmysinnan@gmail.com?subject=Démo ExpertIA" class="btn-primary" style="flex:1;text-align:center;padding:13px 20px;">Envoyer la demande</a>
-    </div>
+
   </div>
 </div>
 
@@ -1490,6 +1504,40 @@
   statNums[3].dataset.target = '100';
   statNums[3].dataset.suffix = '%';
 
+  // ── FORMSPREE ──
+  const FORMSPREE_ID = 'REMPLACER_PAR_TON_ID'; // ex: xbqkndpa
+
+  document.getElementById('demoForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    const btn = document.getElementById('submitBtn');
+    const errEl = document.getElementById('formError');
+    btn.textContent = 'Envoi en cours…';
+    btn.disabled = true;
+    errEl.style.display = 'none';
+    try {
+      const res = await fetch('https://formspree.io/f/' + FORMSPREE_ID, {
+        method: 'POST',
+        body: new FormData(this),
+        headers: { 'Accept': 'application/json' }
+      });
+      if (res.ok) {
+        document.getElementById('formState').style.display = 'none';
+        document.getElementById('successState').style.display = 'block';
+      } else {
+        const data = await res.json();
+        errEl.textContent = data.errors ? data.errors.map(e => e.message).join(', ') : 'Erreur lors de l\'envoi. Réessayez.';
+        errEl.style.display = 'block';
+        btn.textContent = 'Envoyer la demande';
+        btn.disabled = false;
+      }
+    } catch {
+      errEl.textContent = 'Erreur réseau. Vérifiez votre connexion et réessayez.';
+      errEl.style.display = 'block';
+      btn.textContent = 'Envoyer la demande';
+      btn.disabled = false;
+    }
+  });
+
   // MODAL
   function openModal(plan) {
     document.getElementById('demoModal').classList.add('open');
@@ -1499,6 +1547,14 @@
   function closeModal() {
     document.getElementById('demoModal').classList.remove('open');
     document.body.style.overflow = '';
+    setTimeout(() => {
+      document.getElementById('formState').style.display = 'block';
+      document.getElementById('successState').style.display = 'none';
+      document.getElementById('demoForm').reset();
+      const btn = document.getElementById('submitBtn');
+      btn.textContent = 'Envoyer la demande';
+      btn.disabled = false;
+    }, 300);
   }
   document.getElementById('demoModal').addEventListener('click', function(e) {
     if (e.target === this) closeModal();
