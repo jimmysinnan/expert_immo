@@ -693,6 +693,16 @@
       letter-spacing: .02em;
     }
     .pricing-card.featured .plan-monthly-sub { color: rgba(255,255,255,.35); }
+    .plan-price-custom {
+      font-family: var(--serif);
+      font-size: 1.6rem;
+      font-weight: 600;
+      color: var(--navy);
+      line-height: 1;
+      margin-bottom: 6px;
+      letter-spacing: -.01em;
+    }
+    .pricing-card.featured .plan-price-custom { color: var(--white); }
     .plan-sep {
       height: 1px;
       background: var(--border);
@@ -1313,15 +1323,10 @@
     <!-- SOLO -->
     <div class="pricing-card reveal">
       <div class="plan-name">Solo</div>
-      <div class="plan-price-initial"><sup>€</sup>3 500</div>
-      <div class="plan-price-note">investissement initial · paiement unique</div>
+      <div class="plan-price-custom">Sur devis</div>
+      <div class="plan-price-note">investissement initial + abonnement mensuel</div>
       <div class="plan-monthly-block">
-        <div class="plan-plus">puis</div>
-        <div class="plan-monthly">
-          <span class="plan-monthly-amount">150 €</span>
-          <span class="plan-monthly-label">/ mois HT</span>
-        </div>
-        <div class="plan-monthly-sub">abonnement maintenance · sans engagement</div>
+        <div class="plan-monthly-sub" style="margin-top:12px;">Tarif personnalisé selon votre volume de rapports</div>
       </div>
       <div class="plan-sep"></div>
       <ul class="plan-features">
@@ -1338,15 +1343,10 @@
     <div class="pricing-card featured reveal reveal-delay-1">
       <div class="recommended-badge">Recommandé</div>
       <div class="plan-name">PME</div>
-      <div class="plan-price-initial"><sup>€</sup>4 500</div>
-      <div class="plan-price-note">investissement initial · paiement unique</div>
+      <div class="plan-price-custom">Sur devis</div>
+      <div class="plan-price-note">investissement initial + abonnement mensuel</div>
       <div class="plan-monthly-block">
-        <div class="plan-plus">puis</div>
-        <div class="plan-monthly">
-          <span class="plan-monthly-amount">350 €</span>
-          <span class="plan-monthly-label">/ mois HT</span>
-        </div>
-        <div class="plan-monthly-sub">abonnement maintenance · sans engagement</div>
+        <div class="plan-monthly-sub" style="margin-top:12px;">Tarif personnalisé selon votre volume de rapports</div>
       </div>
       <div class="plan-sep"></div>
       <ul class="plan-features">
@@ -1362,15 +1362,10 @@
     <!-- CABINET -->
     <div class="pricing-card reveal reveal-delay-2">
       <div class="plan-name">Cabinet</div>
-      <div class="plan-price-initial"><sup>€</sup>7 000</div>
-      <div class="plan-price-note">investissement initial · paiement unique</div>
+      <div class="plan-price-custom">Sur devis</div>
+      <div class="plan-price-note">investissement initial + abonnement mensuel</div>
       <div class="plan-monthly-block">
-        <div class="plan-plus">puis</div>
-        <div class="plan-monthly">
-          <span class="plan-monthly-amount">600 €</span>
-          <span class="plan-monthly-label">/ mois HT</span>
-        </div>
-        <div class="plan-monthly-sub">abonnement maintenance · sans engagement</div>
+        <div class="plan-monthly-sub" style="margin-top:12px;">Tarif personnalisé selon votre volume de rapports</div>
       </div>
       <div class="plan-sep"></div>
       <ul class="plan-features">
@@ -1615,9 +1610,9 @@
           <label>Formule souhaitée</label>
           <select id="modal-plan" name="formule">
             <option value="">Choisir une formule</option>
-            <option value="SOLO — 3 500 € + 150 €/mois">SOLO — 3 500 € + 150 €/mois</option>
-            <option value="PME — 4 500 € + 350 €/mois">PME — 4 500 € + 350 €/mois (recommandé)</option>
-            <option value="CABINET — 7 000 € + 600 €/mois">CABINET — 7 000 € + 600 €/mois</option>
+            <option value="SOLO">SOLO — 1 utilisateur</option>
+            <option value="PME">PME — 3 à 5 utilisateurs (recommandé)</option>
+            <option value="CABINET">CABINET — 6 à 10 utilisateurs</option>
           </select>
         </div>
         <div class="form-group">
